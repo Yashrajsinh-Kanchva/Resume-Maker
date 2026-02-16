@@ -88,3 +88,12 @@ class AdminService:
         if user:
             return {"email": encoded}
         return {"email": email}
+
+    def is_admin(self, email: str) -> bool:
+        """Return True if the given email belongs to a user with role admin."""
+        if not email or not email.strip():
+            return False
+        email = email.strip()
+        encoded = CryptoUtils.encode(email)
+        user = self.repo.find_user_by_email(encoded) or self.repo.find_user_by_email(email)
+        return user is not None and user.get("role") == "admin"
