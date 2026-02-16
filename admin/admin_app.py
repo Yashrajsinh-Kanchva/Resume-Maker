@@ -7,6 +7,7 @@ from sections.resumes import resumes_page
 from sections.system import system_page
 from sections.logs import logs_page
 from sections.analytics import analytics_page
+from sections.chatbot import chatbot_page
 
 # ---------------- CONFIG ----------------
 
@@ -20,7 +21,7 @@ st.set_page_config(
 
 # ---------------- SESSION STATE ----------------
 
-if "admin" not in st.session_state:
+if "admin" not in st.session_state or st.session_state.admin is None:
     st.session_state.admin = None
 
 
@@ -29,39 +30,43 @@ if "admin" not in st.session_state:
 def login_screen():
     st.title("🔐 Admin Login")
 
-    email = st.text_input("Admin Email")
-    password = st.text_input("Password", type="password")
+    with st.form("admin_login_form"):
+        email = st.text_input("Admin Email")
+        password = st.text_input("Password", type="password")
+        submit = st.form_submit_button("Login")
 
-    if st.button("Login"):
-        if not email or not password:
-            st.warning("Email and password are required")
+    if not submit:
+        return
+
+    if not email or not password:
+        st.warning("Email and password are required")
+        return
+
+    try:
+        res = requests.post(
+            f"{API_BASE}/login",
+            json={"email": email, "password": password},
+            timeout=5
+        )
+
+        if res.status_code != 200:
+            try:
+                st.error(res.json().get("message", "Login failed"))
+            except Exception:
+                st.error("Login failed")
             return
 
-        try:
-            res = requests.post(
-                f"{API_BASE}/login",
-                json={"email": email, "password": password},
-                timeout=5
-            )
+        data = res.json()
 
-            if res.status_code != 200:
-                try:
-                    st.error(res.json().get("message", "Login failed"))
-                except Exception:
-                    st.error("Login failed")
-                return
+        if data.get("success") and data.get("admin"):
+            st.session_state.admin = data["admin"]
+            st.success("Login successful")
+            st.rerun()
+        else:
+            st.error(data.get("message", "Invalid credentials"))
 
-            data = res.json()
-
-            if data.get("success"):
-                st.session_state.admin = data["admin"]
-                st.success("Login successful")
-                st.rerun()
-            else:
-                st.error(data.get("message", "Login failed"))
-
-        except requests.exceptions.RequestException as e:
-            st.error(f"Server not reachable: {e}")
+    except requests.exceptions.RequestException:
+        st.error("Backend server not reachable")
 
 
 # ---------------- AUTH GATE ----------------
@@ -73,8 +78,11 @@ if not st.session_state.admin:
 
 # ---------------- SIDEBAR ----------------
 
+admin = st.session_state.get("admin", {})
+admin_name = admin.get("name", "Admin")
+
 st.sidebar.title("🛠️ Admin Panel")
-st.sidebar.write(f"👤 **{st.session_state.admin.get('name', 'Admin')}**")
+st.sidebar.write(f"👤 **{admin_name}**")
 
 if st.sidebar.button("🚪 Logout"):
     st.session_state.admin = None
@@ -82,7 +90,7 @@ if st.sidebar.button("🚪 Logout"):
 
 menu = st.sidebar.radio(
     "Navigation",
-    ["Dashboard", "Users", "Resumes", "Analytics", "System", "Logs"]
+    ["Dashboard", "Users", "Resumes", "Analytics", "Chatbot", "System", "Logs"]
 )
 
 # ---------------- ROUTING ----------------
@@ -98,6 +106,9 @@ elif menu == "Resumes":
 
 elif menu == "Analytics":
     analytics_page(API_BASE)
+
+elif menu == "Chatbot":
+    chatbot_page(API_BASE)
 
 elif menu == "System":
     system_page(API_BASE)

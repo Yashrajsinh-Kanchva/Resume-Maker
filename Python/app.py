@@ -22,6 +22,7 @@ from Controller.admin_analytics_controller import admin_analytics_bp
 from Controller.admin_user_action_controller import admin_user_action_bp
 from Controller.ai_resume_controller import ai_resume_bp
 from Controller.skill_controller import skill_bp
+from api.admin.chatbot import chatbot_bp
 
 def create_app():
     app = Flask(
@@ -35,13 +36,13 @@ def create_app():
 
     # 🔥 FAIL FAST (NO SILENT OAUTH BREAKS)
     if not app.config.get("SECRET_KEY"):
-        raise RuntimeError("❌ SECRET_KEY missing in .env")
+        raise RuntimeError("SECRET_KEY missing in .env")
 
     if not app.config.get("GOOGLE_CLIENT_ID"):
-        raise RuntimeError("❌ GOOGLE_CLIENT_ID missing in .env")
+        raise RuntimeError("GOOGLE_CLIENT_ID missing in .env")
 
     if not app.config.get("GOOGLE_CLIENT_SECRET"):
-        raise RuntimeError("❌ GOOGLE_CLIENT_SECRET missing in .env")
+        raise RuntimeError("GOOGLE_CLIENT_SECRET missing in .env")
 
     # 🔐 REQUIRED for sessions + OAuth
     app.secret_key = app.config["SECRET_KEY"]
@@ -86,9 +87,9 @@ def create_app():
     # ================= REDIS CHECK =================
     try:
         redis_client.ping()
-        print("✅ Redis connected")
+        print("Redis connected")
     except Exception as e:
-        print("⚠ Redis unavailable:", e)
+        print("Redis unavailable:", e)
 
     # ================= BLUEPRINTS =================
     app.register_blueprint(page_bp)
@@ -104,10 +105,12 @@ def create_app():
     app.register_blueprint(admin_data_bp, url_prefix="/api/admin")
     app.register_blueprint(admin_analytics_bp, url_prefix="/api/admin")
     app.register_blueprint(admin_user_action_bp, url_prefix="/api/admin")
+    app.register_blueprint(chatbot_bp, url_prefix="/api/admin")
     app.register_blueprint(ai_resume_bp)
     app.register_blueprint(skill_bp, url_prefix="/api/skills")
-    print("✅ Flask app initialized successfully")
-    print("OPENAI_API_KEY =", os.getenv("OPENAI_API_KEY"))
-    print(app.config["GOOGLE_CLIENT_ID"])  # debug – remove later
+    print("Flask app initialized successfully")
+    # Avoid printing secrets to console logs
+    print("OPENAI_API_KEY set =", bool(os.getenv("OPENAI_API_KEY")))
+    print("GOOGLE_CLIENT_ID set =", bool(app.config.get("GOOGLE_CLIENT_ID")))
 
     return app
