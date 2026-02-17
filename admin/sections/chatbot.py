@@ -17,16 +17,24 @@ def chatbot_page(api_base: str):
 
         with st.chat_message("assistant"):
             try:
+                url = f"{api_base}/chatbot"
+                admin_email = st.session_state.admin.get("email", "")
+                print(f"[admin_chatbot_ui] POST {url} email={admin_email!r} q={prompt!r}")
+
                 res = requests.post(
-                    f"{api_base}/chatbot",
+                    url,
                     json={"question": prompt},
-                    headers={"X-Admin-Email": st.session_state.admin.get("email", "")},
+                    headers={"X-Admin-Email": admin_email},
                     timeout=10,
                 )
+                build = res.headers.get("X-Chatbot-Build")
+                mode = res.headers.get("X-Chatbot-Mode")
+                print(f"[admin_chatbot_ui] status={res.status_code} build={build!r} mode={mode!r} body={res.text[:200]!r}")
                 if res.ok:
                     data = res.json()
                     answer = data.get("answer", res.text)
                     st.write(answer)
+                    st.caption(f"build: {build or '(missing)'} | mode: {mode or '(missing)'}")
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
                 else:
                     err_msg = "Could not get a response. Please try again."
@@ -35,6 +43,7 @@ def chatbot_page(api_base: str):
                     except Exception:
                         pass
                     st.write(err_msg)
+                    st.caption(f"build: {build or '(missing)'} | mode: {mode or '(missing)'}")
                     st.session_state.chat_history.append({"role": "assistant", "content": err_msg})
             except requests.exceptions.RequestException:
                 err_msg = "Server is not reachable. Please try again later."
