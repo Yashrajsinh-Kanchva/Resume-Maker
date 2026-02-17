@@ -14,6 +14,13 @@ _admin_service = AdminService()
 
 MAX_QUESTION_LENGTH = 2000
 OPENAI_TIMEOUT = 10
+CHATBOT_BUILD = "2026-02-17-feedback-rules-v2"
+
+def _respond(answer: str, *, status: int = 200, mode: str = "rule"):
+    resp = jsonify({"answer": answer})
+    resp.headers["X-Chatbot-Build"] = CHATBOT_BUILD
+    resp.headers["X-Chatbot-Mode"] = mode
+    return resp, status
 
 SYSTEM_PROMPT = """You are an admin analytics helper with read-only access to MongoDB.
 You may only answer questions about analytics and summaries. Do not perform write operations, deletions, or return sensitive data (passwords, tokens).
@@ -59,6 +66,85 @@ def _rule_avg_rating(_q: str) -> str | None:
     return f"The average feedback rating is {avg:.1f}."
 
 
+def _rule_total_feedbacks(_q: str) -> str | None:
+    n = db["feedbacks"].count_documents({})
+    entry_word = "entry" if n == 1 else "entries"
+    return f"There are {n} feedback {entry_word}."
+
+
+def _extract_feedback_name(q: str) -> str:
+    """
+    Extract a name from questions like:
+    - 'give me the feedback where name is mihir'
+    - 'how many feedback have mihir name'
+    - 'feedback with name mihir'
+    - 'feedback by mihir'
+    - 'feedback like mihir'
+
+    Note: patterns are Unicode-aware to support international names.
+    """
+    # Unicode-aware: \w matches letters/digits in many scripts in Python 3 (re.UNICODE default).
+    # Allow common name punctuation and spaces: . ' ’ -
+    name_group = r"([\w\s\.'’\-]{1,60})"
+    patterns = [
+        rf"(?:name\s+is|named)\s+{name_group}",
+        rf"(?:with\s+name)\s+{name_group}",
+        rf"(?:where)\s+name\s*(?:is|=)\s*{name_group}",
+        rf"(?:have|has)\s+{name_group}\s+name",
+        rf"(?:feedbacks?\s+(?:from|by)\s+){name_group}",
+        rf"(?:like)\s+{name_group}",
+    ]
+    for pat in patterns:
+        m = re.search(pat, q)
+        if m:
+            return (m.group(1) or "").strip()
+    return ""
+
+
+def _rule_feedbacks_by_name(q: str) -> str | None:
+    name = _extract_feedback_name(q)
+    if not name:
+        return None
+
+    # Read-only query; exclude email to reduce sensitive output.
+    regex = re.compile(re.escape(name), re.IGNORECASE)
+    query = {"name": {"$regex": regex}}
+
+    count = db["feedbacks"].count_documents(query)
+    if count == 0:
+        return f"No feedback entries found for name containing '{name}'."
+
+    docs = list(
+        db["feedbacks"]
+        .find(query, {"_id": 0, "email": 0})
+        .sort("created_at", -1)
+        .limit(5)
+    )
+
+    shown = len(docs)
+    entry_word = "entry" if count == 1 else "entries"
+    lines = [
+        f"Found {count} feedback {entry_word} matching name '{name}'. Showing latest {shown}:"
+    ]
+
+    for d in docs:
+        person = d.get("name", "Unknown")
+        rating = d.get("rating", "N/A")
+        text = (d.get("feedback") or "").strip()
+        created_at = d.get("created_at")
+        created_s = ""
+        if created_at is not None:
+            try:
+                created_s = created_at.isoformat()
+            except Exception:
+                created_s = str(created_at)
+
+        suffix = f" ({created_s})" if created_s else ""
+        lines.append(f"- {person}: rating {rating} — {text}{suffix}")
+
+    return "\n".join(lines)
+
+
 def _rule_analytics_summary(_q: str) -> str | None:
     users = db["users"].count_documents({})
     resumes = db["resumes"].count_documents({})
@@ -78,10 +164,29 @@ def _rule_analytics_summary(_q: str) -> str | None:
 
 
 def _match_rule(q: str) -> str | None:
-    if "user" in q and ("how many" in q or "total" in q or "registered" in q):
+    feedback_by_name = _rule_feedbacks_by_name(q)
+    if feedback_by_name is not None:
+        return feedback_by_name
+
+    # Be tolerant of small typos (e.g. "how mant", "feedbackk")
+    asks_how_many = ("how many" in q) or (re.search(r"\bhow\s+ma", q) is not None)
+    asks_total = ("total" in q) or ("count" in q) or ("registered" in q)
+    # also match "feed back", "feed backs", etc.
+    has_feedback = (
+        (re.search(r"feed\s*back", q) is not None)
+        or (("feed" in q) and ("back" in q))
+        or ("feedback" in q)
+        or ("feedb" in q)
+    )
+    has_user = ("user" in q) or ("users" in q) or ("usr" in q)
+    has_resume = ("resume" in q) or ("resumes" in q) or ("cv" in q)
+
+    if has_user and (asks_how_many or asks_total):
         return _rule_total_users(q)
-    if "resume" in q and ("how many" in q or "total" in q or "exist" in q):
+    if has_resume and (asks_how_many or ("total" in q) or ("exist" in q) or ("count" in q)):
         return _rule_total_resumes(q)
+    if has_feedback and (asks_how_many or ("total" in q) or ("count" in q)):
+        return _rule_total_feedbacks(q)
     if "average" in q and "rating" in q:
         return _rule_avg_rating(q)
     if "analytics" in q and "summary" in q:
@@ -109,24 +214,52 @@ def _openai_answer(question: str) -> str:
 
 @chatbot_bp.route("/chatbot", methods=["POST"])
 def chatbot():
+    # Always print a trace so we can debug live.
+    try:
+        print(f"[admin_chatbot] HIT build={CHATBOT_BUILD} ip={request.remote_addr} ua={request.headers.get('User-Agent','')[:80]!r}")
+    except Exception:
+        pass
+
     admin_email = (request.headers.get("X-Admin-Email") or "").strip()
     if not admin_email:
-        return jsonify({"answer": "Authorization required. Admin email header missing."}), 401
+        try:
+            print("[admin_chatbot] AUTH missing X-Admin-Email")
+        except Exception:
+            pass
+        return _respond("Authorization required. Admin email header missing.", status=401, mode="auth")
     if not _admin_service.is_admin(admin_email):
-        return jsonify({"answer": "Access denied. Not an admin."}), 403
+        try:
+            print(f"[admin_chatbot] AUTH denied email={admin_email!r}")
+        except Exception:
+            pass
+        return _respond("Access denied. Not an admin.", status=403, mode="auth")
 
     data = request.get_json(silent=True) or {}
     question = data.get("question", "")
     sanitized = _sanitize(question)
 
     if not sanitized:
-        return jsonify({"answer": "Please ask a non-empty question."}), 400
+        return _respond("Please ask a non-empty question.", status=400, mode="validation")
 
     if len(question.strip()) > MAX_QUESTION_LENGTH:
-        return jsonify({"answer": "Question is too long."}), 400
+        return _respond("Question is too long.", status=400, mode="validation")
 
-    answer = _match_rule(sanitized)
-    if answer is None:
-        answer = _openai_answer(sanitized)
+    answer: str | None
+    mode: str
 
-    return jsonify({"answer": answer}), 200
+    if sanitized in {"version", "/version", "chatbot version", "debug version"}:
+        answer = f"admin_chatbot build: {CHATBOT_BUILD}"
+        mode = "version"
+    else:
+        answer = _match_rule(sanitized)
+        mode = "rule" if answer is not None else "openai"
+        if answer is None:
+            answer = _openai_answer(sanitized)
+
+    # Minimal server-side trace for debugging mismatches
+    try:
+        print(f"[admin_chatbot] OK build={CHATBOT_BUILD} mode={mode} q={sanitized!r}")
+    except Exception:
+        pass
+
+    return _respond(answer, status=200, mode=mode)

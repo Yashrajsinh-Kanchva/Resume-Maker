@@ -86,9 +86,9 @@ def create_app():
     # ================= REDIS CHECK =================
     try:
         redis_client.ping()
-        print("✅ Redis connected")
+        print("Redis connected")
     except Exception as e:
-        print("⚠ Redis unavailable:", e)
+        print("Redis unavailable:", e)
 
     # ================= BLUEPRINTS =================
     app.register_blueprint(page_bp)
@@ -107,8 +107,9 @@ def create_app():
     app.register_blueprint(chatbot_bp, url_prefix="/api/admin")
     app.register_blueprint(ai_resume_bp)
 
-    print("✅ Flask app initialized successfully")
-    print("OPENAI_API_KEY =", os.getenv("OPENAI_API_KEY"))
-    print(app.config["GOOGLE_CLIENT_ID"])  # debug – remove later
+    print("Flask app initialized successfully")
+    # Avoid printing secrets to console logs
+    print("OPENAI_API_KEY set =", bool(os.getenv("OPENAI_API_KEY")))
+    print("GOOGLE_CLIENT_ID set =", bool(app.config.get("GOOGLE_CLIENT_ID")))
 
     return app
