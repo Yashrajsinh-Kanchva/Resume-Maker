@@ -16,3 +16,7 @@ venv/
 # IDE
 .idea/
 .vscode/
+
+# Logs
+logs/
+Python/logs/
