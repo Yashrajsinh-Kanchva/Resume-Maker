@@ -31,16 +31,25 @@ def chatbot_page(api_base: str):
                 mode = res.headers.get("X-Chatbot-Mode")
                 print(f"[admin_chatbot_ui] status={res.status_code} build={build!r} mode={mode!r} body={res.text[:200]!r}")
                 if res.ok:
-                    data = res.json()
-                    answer = data.get("answer", res.text)
+                    try:
+                        data = res.json()
+                        # Backend always returns {"answer": "..."} via _respond() helper
+                        answer = data.get("answer", res.text)
+                    except Exception as e:
+                        print(f"[admin_chatbot_ui] JSON parse error: {e}")
+                        answer = "Received an invalid response from the server."
                     st.write(answer)
                     st.caption(f"build: {build or '(missing)'} | mode: {mode or '(missing)'}")
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
                 else:
                     err_msg = "Could not get a response. Please try again."
                     try:
+                        # Backend always returns {"answer": "..."} even for errors (401, 403, 400)
+                        # Never use .get("message") - backend uses "answer" field consistently
                         err_msg = res.json().get("answer", err_msg)
-                    except Exception:
+                    except Exception as e:
+                        print(f"[admin_chatbot_ui] Error response JSON parse failed: {e}")
+                        # Fall back to default error message if JSON parsing fails
                         pass
                     st.write(err_msg)
                     st.caption(f"build: {build or '(missing)'} | mode: {mode or '(missing)'}")

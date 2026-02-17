@@ -174,20 +174,39 @@ function renderExperiences() {
   const section = $("previewExperienceSection");
   const box = $("previewExperienceList");
 
-  if (!section || !box || !list.length) {
-    section && (section.style.display = "none");
+  if (!section || !box) {
+    console.warn("Experience section or list not found");
     return;
   }
 
+  if (!list.length) {
+    section.classList.add("hide-section");
+    section.style.display = "none";
+    return;
+  }
+
+  // Clear existing content
   box.innerHTML = "";
 
+  // Check if this is academic-yellow template (has experience-list class)
+  const isAcademicYellow = box.classList.contains("experience-list");
+  
   list.forEach(exp => {
     const div = document.createElement("div");
+    
+    // Use appropriate class based on template
+    if (isAcademicYellow) {
+      div.className = "mb-3";
+    } else {
+      div.className = "mb-3";
+    }
+    
     div.innerHTML = `
-      <strong>${exp.jobTitle} – ${exp.employer}</strong><br>
-      <small>${exp.startDate} – ${exp.endDate}</small>
+      <strong>${exp.jobTitle}${exp.employer ? " – " + exp.employer : ""}</strong><br>
+      ${exp.city || exp.country ? `<small>${exp.city || ""}${exp.city && exp.country ? ", " : ""}${exp.country || ""}</small><br>` : ""}
+      ${exp.startDate || exp.endDate ? `<small>${exp.startDate || ""}${exp.startDate && exp.endDate ? " – " : ""}${exp.endDate || ""}</small>` : ""}
       <ul>
-        ${exp.description
+        ${(exp.description || "")
           .split("\n")
           .filter(Boolean)
           .map(l => `<li>${l}</li>`)
@@ -197,7 +216,29 @@ function renderExperiences() {
     box.appendChild(div);
   });
 
+  // Show the section - ensure it's visible
+  section.classList.remove("hide-section");
   section.style.display = "block";
+  section.style.visibility = "visible";
+  
+  // Also ensure parent wrappers are visible (for academic-yellow)
+  const contentBox = box.closest(".content-box");
+  if (contentBox) {
+    contentBox.style.display = "block";
+    contentBox.style.visibility = "visible";
+    contentBox.classList.remove("hide-section");
+  }
+  
+  // Ensure section-title is visible (for academic-yellow)
+  const sectionTitle = section.querySelector(".section-title");
+  if (sectionTitle) {
+    sectionTitle.style.display = "flex";
+    sectionTitle.style.visibility = "visible";
+  }
+  
+  console.log("Experience rendered:", list.length, "items", "Template:", isAcademicYellow ? "academic-yellow" : "other");
+  console.log("Section display:", window.getComputedStyle(section).display);
+  console.log("Content box display:", contentBox ? window.getComputedStyle(contentBox).display : "N/A");
 }
 
 /* ================== CLEAR FORM ================== */

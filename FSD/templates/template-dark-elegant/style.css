@@ -37,17 +37,20 @@
   color: #e0e0e0;
 }
 
-.dark-modern-pro .photo {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  border: 2px solid #ffca28;
-  margin-bottom: 26px;
+.dark-modern-pro .profile-icon {
   display: flex;
-  align-items: center;
   justify-content: center;
-  color: #aaa;
-  font-size: 12px;
+  align-items: center;
+  margin: 0 auto 26px;
+}
+
+.dark-modern-pro .profile-icon svg {
+  filter: drop-shadow(0 4px 12px rgba(255, 202, 40, 0.4));
+  transition: transform 0.3s ease;
+}
+
+.dark-modern-pro .profile-icon:hover svg {
+  transform: scale(1.05);
 }
 
 .dark-modern-pro .side-section {

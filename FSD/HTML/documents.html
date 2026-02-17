@@ -58,6 +58,10 @@
         <div class="pageHeader d-flex gap-3 align-items-center mb-4">
           <h2 class="me-auto text-white">My <span style="color: var(--neon-green)">Resumes</span></h2>
 
+          <button id="atsCheckBtn" class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#atsCheckModal">
+            <i class="bi bi-clipboard-check"></i> ATS Score Checker
+          </button>
+
           <button id="aiCreateBtn" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#aiResumeModal">
             <i class="bi bi-robot"></i> Create with AI
           </button>
@@ -65,6 +69,134 @@
           <a href="choose-template.html" class="btn btn-primary">
             <i class="bi bi-plus-lg"></i> Create New
           </a>
+        </div>
+
+        <!-- ATS Score Checker Modal -->
+        <div class="modal fade" id="atsCheckModal" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content p-4">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0 fw-bold">
+                  <i class="bi bi-clipboard-check me-2"></i>ATS Resume Score Checker
+                </h4>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+
+              <div class="modal-body">
+                <form id="atsCheckForm">
+                  <!-- Saved Resume Selection -->
+                  <div class="mb-4" id="savedResumeSection">
+                    <label class="form-label text-white mb-2">
+                      <i class="bi bi-file-earmark-text me-2"></i>Select Resume
+                    </label>
+                    <select id="savedResumeSelect" class="form-select" required>
+                      <option value="">Loading resumes...</option>
+                    </select>
+                    <small class="text-muted">Select a saved resume to check</small>
+                  </div>
+
+                  <div class="mb-4">
+                    <label class="form-label text-white mb-2">
+                      <i class="bi bi-file-text me-2"></i>Job Description
+                    </label>
+                    <textarea 
+                      id="jobDescription" 
+                      name="job_description" 
+                      class="form-control" 
+                      rows="8" 
+                      placeholder="Paste the job description here..."
+                      required></textarea>
+                    <small class="text-muted">Paste the complete job description for accurate analysis</small>
+                  </div>
+
+                  <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="checkAtsBtn">
+                      <i class="bi bi-search me-2"></i>Check ATS Score
+                    </button>
+                  </div>
+                </form>
+
+                <!-- Results Section (Hidden initially) -->
+                <div id="atsResults" class="mt-4" style="display: none;">
+                  <hr class="border-secondary">
+                  
+                  <!-- Score Display -->
+                  <div class="text-center mb-4">
+                    <h3 class="text-white mb-2">ATS Score</h3>
+                    <div class="ats-score-circle mx-auto mb-3">
+                      <span id="atsScoreValue" class="ats-score-number">0</span>
+                      <span class="ats-score-label">/ 100</span>
+                    </div>
+                    <div id="atsScoreMessage" class="text-muted"></div>
+                  </div>
+
+                  <!-- Keyword Match -->
+                  <div class="mb-4">
+                    <h5 class="text-white mb-3">
+                      <i class="bi bi-key me-2"></i>Keyword Match
+                    </h5>
+                    <div class="progress mb-2" style="height: 25px;">
+                      <div 
+                        id="keywordMatchBar" 
+                        class="progress-bar progress-bar-striped progress-bar-animated" 
+                        role="progressbar" 
+                        style="width: 0%">
+                        <span id="keywordMatchPercent">0%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Missing Keywords -->
+                  <div class="mb-4">
+                    <h5 class="text-white mb-3">
+                      <i class="bi bi-exclamation-triangle me-2"></i>Missing Keywords
+                    </h5>
+                    <div id="missingKeywords" class="d-flex flex-wrap gap-2">
+                      <!-- Will be populated by JS -->
+                    </div>
+                  </div>
+
+                  <!-- Sections Found -->
+                  <div class="mb-4">
+                    <h5 class="text-white mb-3">
+                      <i class="bi bi-list-check me-2"></i>Resume Sections
+                    </h5>
+                    <div id="sectionsFound" class="d-flex flex-wrap gap-2">
+                      <!-- Will be populated by JS -->
+                    </div>
+                  </div>
+
+                  <!-- Formatting Issues -->
+                  <div class="mb-4" id="formattingIssuesSection" style="display: none;">
+                    <h5 class="text-warning mb-3">
+                      <i class="bi bi-exclamation-circle me-2"></i>Formatting Issues
+                    </h5>
+                    <ul id="formattingIssues" class="list-unstyled">
+                      <!-- Will be populated by JS -->
+                    </ul>
+                  </div>
+
+                  <!-- AI Suggestions -->
+                  <div class="mb-4">
+                    <h5 class="text-success mb-3">
+                      <i class="bi bi-lightbulb me-2"></i>Improvement Suggestions
+                    </h5>
+                    <ul id="aiSuggestions" class="list-unstyled">
+                      <!-- Will be populated by JS -->
+                    </ul>
+                  </div>
+
+                  <div class="text-center mt-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('atsCheckForm').reset(); document.getElementById('atsResults').style.display='none';">
+                      <i class="bi bi-arrow-clockwise me-2"></i>Check Another Resume
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="modal fade" id="aiResumeModal" tabindex="-1">
@@ -164,9 +296,16 @@
 
   <div class="resume-modal">
 
-    <button id="closePreview" class="close-btn" onclick="document.getElementById('resumePreviewOverlay').classList.add('hidden')">
+    <!-- Modal Header -->
+    <div class="resume-modal-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-file-earmark-text-fill" style="color: var(--neon-green); font-size: 24px;"></i>
+        <h5 class="mb-0 text-white" id="resumePreviewTitle">Resume Preview</h5>
+      </div>
+      <button id="closePreview" class="close-btn" onclick="document.getElementById('resumePreviewOverlay').classList.add('hidden')">
         <i class="bi bi-x-lg"></i>
-    </button>
+      </button>
+    </div>
 
     <div id="pdfWrapper">
       <div id="finalResumePreview"></div>

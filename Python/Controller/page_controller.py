@@ -47,6 +47,14 @@ def contact_page():
     return send_from_directory(HTML_DIR, "contact.html")
 
 
+# ---------------- SETTINGS ----------------
+@page_bp.route("/settings.html")
+def settings_page():
+    if "user" not in session:
+        return redirect(url_for("pages.login_page"))
+    return send_from_directory(HTML_DIR, "settings.html")
+
+
 # ---------------- DOCUMENTS ----------------
 @page_bp.route("/documents.html")
 def documents_page():

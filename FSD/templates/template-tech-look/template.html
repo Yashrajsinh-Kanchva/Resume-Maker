@@ -1,24 +1,42 @@
 <div class="resume tech-dark" style="width:800px;min-height:1100px;">
 
   <header class="top-header" style="background:#212121;color:white;">
-    <h1 id="previewName">Rathod Mihir</h1>
-    <p id="previewTitle">Java Developer</p>
+    <h1 id="previewName"></h1>
+    <p id="previewTitle"></p>
   </header>
 
   <div class="body">
 
     <aside class="left-panel" style="background:#263238;color:#fff;">
-      <div class="photo"></div>
+      <div class="profile-icon">
+        <svg width="130" height="130" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="65" cy="65" r="65" fill="url(#techGrad1)"/>
+          <circle cx="65" cy="48" r="22" fill="#fff" opacity="0.95"/>
+          <path d="M28 100 C28 80, 45 70, 65 70 C85 70, 102 80, 102 100" fill="#fff" opacity="0.95"/>
+          <defs>
+            <linearGradient id="techGrad1" x1="0" y1="0" x2="130" y2="130" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#212121"/>
+              <stop offset="100%" stop-color="#424242"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
 
       <section class="side-section">
         <h3>CONTACT</h3>
-        <p id="previewEmail">mihir@email.com</p>
-        <p id="previewPhone">+91 9876543210</p>
+        <p id="previewEmail"></p>
+        <p id="previewPhone"></p>
+        <p id="previewLocation"></p>
       </section>
 
       <section class="side-section">
         <h3>LANGUAGES</h3>
-        <ul id="pLanguages"><li>English</li><li>Hindi</li></ul>
+        <ul id="pLanguages"></ul>
+      </section>
+      
+      <section class="side-section">
+        <h3>CERTIFICATIONS</h3>
+        <ul id="pCerts"></ul>
       </section>
     </aside>
 
@@ -26,21 +44,29 @@
 
       <section class="main-section">
         <h3>PROFILE</h3>
-        <p id="previewSummary">
-          Detail-oriented Java developer with strong backend skills.
-        </p>
+        <p id="previewSummary"></p>
       </section>
 
-      <section class="main-section">
+      <section class="main-section" id="skillsSection">
         <h3>SKILLS</h3>
-        <ul id="previewSkills"><li>Java</li><li>DSA</li><li>REST APIs</li></ul>
+        <ul id="previewSkills"></ul>
       </section>
 
-      <section class="main-section">
+      <section class="main-section" id="educationSection">
         <h3>EDUCATION</h3>
-        <div id="previewEducationList">
-          <p>B.Tech – Computer Science</p>
+        <div class="edu-item">
+          <p id="previewDegree"></p>
+          <p id="previewField"></p>
+          <p id="previewEduInstitute"></p>
+          <p id="previewEduLocation"></p>
+          <p id="previewGraduation"></p>
+          <ul id="previewEduDetails"></ul>
         </div>
+      </section>
+      
+      <section class="main-section hide-section" id="previewExperienceSection">
+        <h3>EXPERIENCE</h3>
+        <div id="previewExperienceList"></div>
       </section>
 
     </main>

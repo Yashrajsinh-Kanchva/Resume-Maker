@@ -102,6 +102,13 @@ fetch(TEMPLATES[selectedTemplate].html)
     loadEducation();
     loadExperience();
     loadSkills(); // ✅ stable now
+    loadCustomSections(); // ✅ Load custom sections
+    
+    // ✅ Add event listeners for skill buttons
+    bindSkillButtons();
+    
+    // ✅ Load custom sections list
+    renderCustomSectionsList();
   });
 
 /* ================== HEADER (STEP-1) ================== */
@@ -158,22 +165,29 @@ function loadExperience() {
   const section = $("previewExperienceSection");
   const box = $("previewExperienceList");
 
-  if (!section || !box || !list.length) {
-    section?.classList.add("hide-section");
+  if (!section || !box) {
+    console.warn("Experience section or list not found");
+    return;
+  }
+
+  if (!list.length) {
+    section.classList.add("hide-section");
+    section.style.display = "none";
     return;
   }
 
   box.innerHTML = "";
 
+  // Check if this is academic-yellow template (has experience-list class)
+  const isAcademicYellow = box.classList.contains("experience-list");
+
   list.forEach(exp => {
     const div = document.createElement("div");
-    div.className = "exp-item";
+    div.className = isAcademicYellow ? "mb-3" : "exp-item mb-3";
     div.innerHTML = `
-      <strong>${exp.jobTitle} – ${exp.employer}</strong><br>
-      <small>
-        ${exp.city || ""}${exp.country ? ", " + exp.country : ""}
-        | ${exp.startDate} – ${exp.endDate}
-      </small>
+      <strong>${exp.jobTitle}${exp.employer ? " – " + exp.employer : ""}</strong><br>
+      ${exp.city || exp.country ? `<small>${exp.city || ""}${exp.city && exp.country ? ", " : ""}${exp.country || ""}</small><br>` : ""}
+      ${exp.startDate || exp.endDate ? `<small>${exp.startDate || ""}${exp.startDate && exp.endDate ? " – " : ""}${exp.endDate || ""}</small>` : ""}
       <ul>
         ${(exp.description || "")
           .split("\n")
@@ -185,7 +199,29 @@ function loadExperience() {
     box.appendChild(div);
   });
 
+  // Show the section - ensure it's visible
   section.classList.remove("hide-section");
+  section.style.display = "block";
+  section.style.visibility = "visible";
+  
+  // Also ensure parent wrappers are visible (for academic-yellow)
+  const contentBox = box.closest(".content-box");
+  if (contentBox) {
+    contentBox.style.display = "block";
+    contentBox.style.visibility = "visible";
+    contentBox.classList.remove("hide-section");
+  }
+  
+  // Ensure section-title is visible (for academic-yellow)
+  const sectionTitle = section.querySelector(".section-title");
+  if (sectionTitle) {
+    sectionTitle.style.display = "flex";
+    sectionTitle.style.visibility = "visible";
+  }
+  
+  console.log("Experience loaded:", list.length, "items", "Template:", isAcademicYellow ? "academic-yellow" : "other");
+  console.log("Section display:", window.getComputedStyle(section).display);
+  console.log("Content box display:", contentBox ? window.getComputedStyle(contentBox).display : "N/A");
 }
 
 /* ================== SKILLS (STEP-4) ================== */
@@ -217,6 +253,7 @@ $("skillsEditor")?.addEventListener("input", async e => {
   const q = lines[lines.length - 1].trim();
 
   saveSkills(getSkills()); // ✅ save here (merged logic)
+  loadSkills(); // ✅ Update live preview when typing
 
   if (q.length < 1) {
       const box = $("skillSuggestions");
@@ -242,6 +279,7 @@ $("skillsEditor")?.addEventListener("input", async e => {
       e.target.value = lines.join("\n") + "\n";
       box.innerHTML = "";
       saveSkills(getSkills());
+      loadSkills(); // ✅ Update live preview when selecting suggestion
     };
     box.appendChild(div);
   });
@@ -265,6 +303,39 @@ function saveSkills(list) {
     $("skillsEditor").value = list.join("\n");
   }
 })();
+
+/* ================== BIND SKILL BUTTONS ================== */
+function bindSkillButtons() {
+  document.querySelectorAll(".skill-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const skill = btn.dataset.skill;
+      if (!skill) return;
+      
+      const editor = $("skillsEditor");
+      if (!editor) return;
+      
+      // Get current skills
+      const currentSkills = getSkills();
+      
+      // Check if skill already exists
+      if (currentSkills.includes(skill)) {
+        return; // Don't add duplicates
+      }
+      
+      // Add skill to textarea
+      const currentValue = editor.value.trim();
+      const newValue = currentValue 
+        ? currentValue + "\n" + skill
+        : skill;
+      
+      editor.value = newValue;
+      
+      // Save and update preview
+      saveSkills(getSkills());
+      loadSkills();
+    });
+  });
+}
 
 /* ================== HELPERS ================== */
 function setText(id, val) {
@@ -290,18 +361,249 @@ function formatMonth(v) {
   });
 }
 
+/* ================== CUSTOM SECTIONS ================== */
+let editingCustomSectionIndex = null;
+
+function getCustomSections() {
+  return JSON.parse(localStorage.getItem("customSections") || "[]");
+}
+
+function saveCustomSections(sections) {
+  localStorage.setItem("customSections", JSON.stringify(sections));
+}
+
+function showAddCustomSection() {
+  editingCustomSectionIndex = null;
+  $("customSectionName").value = "";
+  $("customSectionDescription").value = "";
+  $("customSectionModal").style.display = "flex";
+  document.querySelector(".custom-section-modal .modal-content h5").textContent = "Add Custom Section";
+}
+
+function closeCustomSectionModal() {
+  $("customSectionModal").style.display = "none";
+  editingCustomSectionIndex = null;
+}
+
+function saveCustomSection() {
+  const name = $("customSectionName").value.trim();
+  const description = $("customSectionDescription").value.trim();
+
+  if (!name || !description) {
+    alert("Please fill in both section name and description.");
+    return;
+  }
+
+  const sections = getCustomSections();
+  
+  if (editingCustomSectionIndex !== null) {
+    // Edit existing section
+    sections[editingCustomSectionIndex] = { name, description };
+  } else {
+    // Add new section
+    sections.push({ name, description });
+  }
+
+  saveCustomSections(sections);
+  renderCustomSectionsList();
+  loadCustomSections();
+  closeCustomSectionModal();
+}
+
+function editCustomSection(index) {
+  const sections = getCustomSections();
+  if (sections[index]) {
+    editingCustomSectionIndex = index;
+    $("customSectionName").value = sections[index].name;
+    $("customSectionDescription").value = sections[index].description;
+    $("customSectionModal").style.display = "flex";
+    document.querySelector(".custom-section-modal .modal-content h5").textContent = "Edit Custom Section";
+  }
+}
+
+function deleteCustomSection(index) {
+  if (confirm("Are you sure you want to delete this custom section?")) {
+    const sections = getCustomSections();
+    sections.splice(index, 1);
+    saveCustomSections(sections);
+    renderCustomSectionsList();
+    loadCustomSections();
+  }
+}
+
+function renderCustomSectionsList() {
+  const sections = getCustomSections();
+  const list = $("customSectionsList");
+  
+  if (!sections.length) {
+    list.innerHTML = '<p class="text-light-gray small mb-0">No custom sections added yet.</p>';
+    return;
+  }
+
+  list.innerHTML = sections.map((section, index) => `
+    <div class="custom-section-item">
+      <div class="custom-section-item-content">
+        <div class="custom-section-item-title">${escapeHtml(section.name)}</div>
+        <div class="custom-section-item-desc">${escapeHtml(section.description)}</div>
+      </div>
+      <div class="custom-section-item-actions">
+        <button onclick="editCustomSection(${index})" title="Edit">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button onclick="deleteCustomSection(${index})" title="Delete">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function loadCustomSections() {
+  const sections = getCustomSections();
+  
+  if (!sections.length) {
+    // Remove existing custom sections if none exist
+    document.querySelectorAll(".custom-section-preview").forEach(el => el.remove());
+    return;
+  }
+
+  // Find the right panel (main content area)
+  const rightPanel = document.querySelector(".right-panel") || document.querySelector("main") || document.querySelector(".content-column");
+  
+  if (!rightPanel) {
+    console.warn("Could not find right panel for custom sections");
+    return;
+  }
+
+  // Detect template type by checking existing section classes and structure
+  const existingSection = rightPanel.querySelector(".main-section") || rightPanel.querySelector(".content-card") || rightPanel.querySelector(".card-content") || rightPanel.querySelector("section");
+  let sectionClass = "main-section";
+  let useWrapper = false;
+  let wrapperClass = "";
+  
+  if (existingSection) {
+    // Check for blue-corporate template (uses content-card)
+    if (existingSection.classList.contains("content-card")) {
+      sectionClass = "content-card";
+    } 
+    // Check for academic-yellow template (uses main-section card-content with inner structure)
+    else if (existingSection.classList.contains("card-content")) {
+      sectionClass = "main-section card-content";
+      useWrapper = true;
+      wrapperClass = "content-box";
+    } 
+    // Default to main-section
+    else {
+      sectionClass = "main-section";
+    }
+  }
+
+  // Remove existing custom sections from preview
+  document.querySelectorAll(".custom-section-preview").forEach(el => el.remove());
+
+  // Add custom sections after experience section
+  sections.forEach((section, index) => {
+    const sectionEl = document.createElement("section");
+    sectionEl.className = `${sectionClass} custom-section-preview`;
+    sectionEl.id = `customSection${index}`;
+    
+    // Format description - handle newlines
+    const descHtml = section.description.includes("\n")
+      ? `<ul>${section.description.split("\n").filter(Boolean).map(d => `<li>${escapeHtml(d)}</li>`).join("")}</ul>`
+      : `<p style="white-space: pre-wrap;">${escapeHtml(section.description)}</p>`;
+    
+    // Check if template uses wrapper structure (like academic-yellow)
+    if (useWrapper && wrapperClass) {
+      sectionEl.innerHTML = `
+        <div class="section-title">
+          <span class="title-icon">📋</span>
+          <h3>${escapeHtml(section.name.toUpperCase())}</h3>
+        </div>
+        <div class="${wrapperClass}">
+          ${descHtml}
+        </div>
+      `;
+    } else {
+      sectionEl.innerHTML = `
+        <h3>${escapeHtml(section.name.toUpperCase())}</h3>
+        ${descHtml}
+      `;
+    }
+    
+    // Insert after experience section if it exists, otherwise append
+    const experienceSection = rightPanel.querySelector("#previewExperienceSection");
+    if (experienceSection) {
+      // Insert after the experience section
+      experienceSection.insertAdjacentElement("afterend", sectionEl);
+    } else {
+      // If no experience section, append to the end
+      rightPanel.appendChild(sectionEl);
+    }
+  });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 /* ================== FINAL SAVE ================== */
 function finishResume() {
+  const customSections = getCustomSections();
+  console.log("Saving resume with custom sections:", customSections.length, customSections);
+  
+  // Generate descriptive title with template name and date
+  const templateNames = {
+    academicYellow: "Academic Yellow",
+    professionalBlue: "Professional Blue",
+    minimalElegant: "Minimal Elegant",
+    blueCorporate: "Blue Corporate",
+    softGreenMinimal: "Soft Green",
+    darkElegant: "Dark Elegant",
+    timelineResume: "Timeline",
+    boldRedAccent: "Bold Red",
+    cardBased: "Card Based",
+    glassmorphism: "Glassmorphism",
+    infographic: "Infographic",
+    ultraMinimal: "Ultra Minimal",
+    boxShadow: "Box Shadow",
+    classicSerif: "Classic Serif",
+    freshGradient: "Fresh Gradient",
+    splitHeaderModern: "Split Header",
+    techLook: "Tech Look",
+    ultraClean: "Ultra Clean"
+  };
+  
+  const templateDisplayName = templateNames[selectedTemplate] || selectedTemplate;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+  const timeStr = now.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+  
+  // Auto-generate title: "Template Name - Date Time"
+  const autoTitle = `${templateDisplayName} - ${dateStr} ${timeStr}`;
+  
   const resumePayload = {
-    title: "My Resume",
+    title: autoTitle,
     template: selectedTemplate,
     data: {
       step1: JSON.parse(localStorage.getItem("step1") || "{}"),
       step2: JSON.parse(localStorage.getItem("step2") || "{}"),
       step3: JSON.parse(localStorage.getItem("experiences") || "[]"),
-      step4: JSON.parse(localStorage.getItem("skills") || "[]")
+      step4: JSON.parse(localStorage.getItem("skills") || "[]"),
+      customSections: customSections // ✅ Include custom sections
     }
   };
+  
+  console.log("Resume payload:", JSON.stringify(resumePayload, null, 2));
 
   fetch("/api/resumes", {
     method: "POST",

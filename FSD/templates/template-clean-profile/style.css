@@ -16,15 +16,21 @@
   box-sizing: border-box;
 }
 
-/* PHOTO */
-.photo {
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  background: #cfd3d6;
-
-  /* 🔥 ALIGN FIX */
+/* PROFILE ICON */
+.profile-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin: 0 auto 24px;
+}
+
+.profile-icon svg {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+  transition: transform 0.3s ease;
+}
+
+.profile-icon:hover svg {
+  transform: scale(1.05);
 }
 
 /* LEFT BLOCKS */

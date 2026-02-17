@@ -68,10 +68,14 @@ def create_ai_resume(user_email, payload):
 
     # encoded_email = user_repo.encode_email(user_email)
     encoded_email = CryptoUtils.encode(user_email)
+    
+    # Get template from payload, default to "professionalBlue" if not provided
+    template = payload.get("template", "professionalBlue")
+    
     resume = {
         "user_email": encoded_email,
         "title": f"AI Resume - {role}",
-        "template": "professionalBlue",
+        "template": template,
         "data": resume_data,
         "created_at": datetime.now(timezone.utc)
     }

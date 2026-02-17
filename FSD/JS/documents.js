@@ -104,6 +104,13 @@ fetch("/api/resumes", { credentials: "include" })
         <button class="delete-resume-btn"
                 onclick="deleteResume(event, '${r._id}')">✕</button>
 
+        <!-- 📥 DOWNLOAD BUTTON -->
+        <button class="download-resume-btn"
+                onclick="downloadResumeDirect(event, '${r._id}')"
+                title="Download Resume">
+          <i class="bi bi-download"></i>
+        </button>
+
         <div class="rank-badge">
           ${r.rank === 1 ? "🏆" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : "🔹"}
           Rank ${r.rank}
@@ -112,6 +119,7 @@ fetch("/api/resumes", { credentials: "include" })
         <h3>${r.title}</h3>
         <p>Score: <strong>${r.score} / 100</strong></p>
         <p>Template: ${r.template}</p>
+        ${r.created_at ? `<p class="text-muted small mb-0"><i class="bi bi-calendar3 me-1"></i>${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
       </div>
     `).join("");
 
@@ -121,20 +129,43 @@ fetch("/api/resumes", { credentials: "include" })
 
 /* ================= OPEN PREVIEW ================= */
 function openResumePreview(resumeId) {
+  console.log("Opening resume preview for ID:", resumeId);
   fetch(`/api/resumes/${resumeId}`, { credentials: "include" })
-    .then(res => res.json())
+    .then(res => {
+      console.log("API Response status:", res.status);
+      return res.json();
+    })
     .then(resume => {
+      console.log("Received resume object:", resume);
+      console.log("Resume data structure:", JSON.stringify(resume, null, 2));
+      
+      if (!resume || !resume.data) {
+        console.error("Resume or resume.data is missing!", resume);
+        alert("Error: Resume data not found. Please try again.");
+        return;
+      }
+      
       loadFinalTemplate(resume);
 
       // 🔥 set resumeId on score button
       const scoreBtn = document.querySelector(".resume-score-btn");
       if (scoreBtn) scoreBtn.dataset.id = resumeId;
 
+      // Update modal header title
+      const titleEl = document.getElementById("resumePreviewTitle");
+      if (titleEl && resume.title) {
+        titleEl.textContent = resume.title;
+      }
+
       document
         .getElementById("resumePreviewOverlay")
         .classList.remove("hidden");
 
       document.body.style.overflow = "hidden";
+    })
+    .catch(err => {
+      console.error("Error fetching resume:", err);
+      alert("Error loading resume: " + err.message);
     });
 }
 
@@ -175,14 +206,74 @@ function loadFinalTemplate(resume) {
   fetch(tpl.html)
     .then(res => res.text())
     .then(html => {
-      document.getElementById("finalResumePreview").innerHTML = html;
-      injectFinalData(resume.data);
+      const previewContainer = document.getElementById("finalResumePreview");
+      if (!previewContainer) {
+        console.error("finalResumePreview container not found");
+        return;
+      }
+      
+      console.log("Loading template HTML into container");
+      previewContainer.innerHTML = html;
+      
+      // Use requestAnimationFrame to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          console.log("=== INJECTING DATA ===");
+          console.log("Full resume object:", resume);
+          console.log("Resume.data:", resume.data);
+          console.log("Resume.data.step1:", resume.data?.step1);
+          console.log("Resume.data.step2:", resume.data?.step2);
+          console.log("Resume.data.step3:", resume.data?.step3);
+          console.log("Resume.data.step4:", resume.data?.step4);
+          console.log("Resume.data.customSections:", resume.data?.customSections);
+          
+          if (resume && resume.data) {
+            // Verify elements exist before injecting
+            console.log("Verifying template elements exist:");
+            console.log("previewName exists:", !!document.getElementById("previewName"));
+            console.log("previewTitle exists:", !!document.getElementById("previewTitle"));
+            console.log("previewEmail exists:", !!document.getElementById("previewEmail"));
+            console.log("previewPhone exists:", !!document.getElementById("previewPhone"));
+            console.log("previewLocation exists:", !!document.getElementById("previewLocation"));
+            console.log("previewSkills exists:", !!document.getElementById("previewSkills"));
+            
+            injectFinalData(resume.data);
+            
+            // Verify after injection
+            setTimeout(() => {
+              console.log("=== AFTER INJECTION ===");
+              console.log("previewName content:", document.getElementById("previewName")?.textContent);
+              console.log("previewTitle content:", document.getElementById("previewTitle")?.textContent);
+              console.log("previewEmail content:", document.getElementById("previewEmail")?.textContent);
+              console.log("previewPhone content:", document.getElementById("previewPhone")?.textContent);
+              console.log("previewSkills innerHTML:", document.getElementById("previewSkills")?.innerHTML);
+            }, 100);
+          } else {
+            console.error("No resume data found in response");
+            alert("Error: Resume data is missing. Please try creating the resume again.");
+          }
+        }, 100); // Increased timeout to ensure DOM is ready
+      });
+    })
+    .catch(err => {
+      console.error("Error loading template:", err);
+      alert("Error loading template: " + err.message);
     });
 }
 /* ================= HELPERS ================= */
 function setText(id, value) {
   const el = document.getElementById(id);
-  if (el && value) el.textContent = value;
+  if (el) {
+    // Set text even if value is empty string, null, or undefined (to clear fields)
+    const textValue = value != null ? String(value) : "";
+    el.textContent = textValue;
+    
+    // Ensure element is visible if it has content
+    if (textValue.trim()) {
+      el.style.display = "";
+      el.classList.remove("hide-section");
+    }
+  }
 }
 
 function fillList(id, text) {
@@ -240,6 +331,283 @@ function downloadResumePDF() {
       .from(element)
       .save();
   }, 300);
+}
+
+/* ================= DOWNLOAD RESUME DIRECTLY FROM CARD ================= */
+function downloadResumeDirect(event, resumeId) {
+  // Prevent the card click event from firing
+  event.stopPropagation();
+  
+  // Show loading indicator
+  const btn = event.target.closest('.download-resume-btn');
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+  btn.disabled = true;
+  
+  console.log("Downloading resume:", resumeId);
+  
+  // Fetch resume data
+  fetch(`/api/resumes/${resumeId}`, { credentials: "include" })
+    .then(res => res.json())
+    .then(resume => {
+      if (!resume || !resume.data) {
+        alert("Error: Resume data not found.");
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        return;
+      }
+      
+      // Load the template into a hidden container
+      const tpl = TEMPLATES[resume.template] || TEMPLATES.academicYellow;
+      
+      // Create a temporary container for PDF generation
+      // Position it completely off-screen to prevent any visual flash
+      const tempContainer = document.createElement("div");
+      tempContainer.id = "tempResumePreview";
+      tempContainer.style.position = "absolute";
+      tempContainer.style.left = "-10000px";
+      tempContainer.style.top = "0";
+      tempContainer.style.width = "800px";
+      tempContainer.style.height = "auto";
+      tempContainer.style.overflow = "visible";
+      tempContainer.style.visibility = "hidden";
+      tempContainer.style.pointerEvents = "none";
+      document.body.appendChild(tempContainer);
+      
+      // Check if CSS is already loaded
+      const existingCSS = document.querySelector(`link[href="${tpl.css}"]`);
+      let cssLink = existingCSS;
+      
+      if (!existingCSS) {
+        // Load CSS
+        cssLink = document.createElement("link");
+        cssLink.rel = "stylesheet";
+        cssLink.href = tpl.css;
+        cssLink.id = "temp-resume-css";
+        document.head.appendChild(cssLink);
+      }
+      
+      // Wait for CSS to load if it's new
+      const loadTemplate = () => {
+        // Load HTML template
+        fetch(tpl.html)
+          .then(res => res.text())
+          .then(html => {
+            tempContainer.innerHTML = html;
+            
+            // Wait for DOM to be ready and CSS to apply
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                // Store reference to original finalResumePreview if it exists
+                const originalFinalPreview = document.getElementById("finalResumePreview");
+                let wasSwapped = false;
+                
+                // Temporarily swap the container so injectFinalData works
+                if (originalFinalPreview && originalFinalPreview.id === "finalResumePreview") {
+                  originalFinalPreview.id = "originalFinalResumePreviewBackup";
+                  wasSwapped = true;
+                }
+                
+                // Create a wrapper that injectFinalData expects
+                const finalPreviewWrapper = document.createElement("div");
+                finalPreviewWrapper.id = "finalResumePreview";
+                
+                // Move the resume content into the wrapper
+                const resumeContent = tempContainer.querySelector(".resume");
+                if (resumeContent) {
+                  finalPreviewWrapper.appendChild(resumeContent);
+                } else {
+                  // If no .resume class, move all direct children
+                  Array.from(tempContainer.children).forEach(child => {
+                    finalPreviewWrapper.appendChild(child);
+                  });
+                }
+                
+                tempContainer.appendChild(finalPreviewWrapper);
+                
+                // Inject data into the temporary container
+                injectFinalData(resume.data);
+                
+                // Wait for rendering, fonts, and images to load
+                setTimeout(() => {
+                  // Find the actual resume element to convert
+                  const resumeElement = tempContainer.querySelector(".resume") || 
+                                       finalPreviewWrapper.querySelector(".resume") ||
+                                       finalPreviewWrapper.firstElementChild ||
+                                       tempContainer.firstElementChild;
+                  
+                  if (!resumeElement || !resumeElement.innerHTML || resumeElement.innerHTML.trim().length === 0) {
+                    console.error("Resume element not found or empty in temp container");
+                    console.log("Temp container HTML:", tempContainer.innerHTML.substring(0, 500));
+                    console.log("FinalPreviewWrapper HTML:", finalPreviewWrapper.innerHTML.substring(0, 500));
+                    alert("Error: Could not generate PDF. Content is empty.");
+                    cleanup();
+                    return;
+                  }
+                  
+                  console.log("Generating PDF from element:", resumeElement);
+                  console.log("Element has content:", resumeElement.innerHTML.length > 0);
+                  console.log("Element classes:", resumeElement.className);
+                  
+                  // Ensure resume element has proper width and is not cut off
+                  const resumeWidth = 800;
+                  resumeElement.style.width = resumeWidth + "px";
+                  resumeElement.style.maxWidth = resumeWidth + "px";
+                  resumeElement.style.boxSizing = "border-box";
+                  
+                  // Add CSS to prevent page breaks inside sections
+                  const style = document.createElement("style");
+                  style.id = "pdf-page-break-style";
+                  style.textContent = `
+                    .resume, .resume * {
+                      page-break-inside: avoid !important;
+                      break-inside: avoid !important;
+                    }
+                    section, .main-section, .content-card, .card-content {
+                      page-break-inside: avoid !important;
+                      break-inside: avoid !important;
+                    }
+                  `;
+                  document.head.appendChild(style);
+                  
+                  // Force layout recalculation
+                  void resumeElement.offsetHeight;
+                  
+                  // Get actual content height
+                  const actualHeight = Math.max(resumeElement.scrollHeight, resumeElement.offsetHeight);
+                  
+                  // A4 dimensions: 210mm x 297mm
+                  // At 96 DPI: 794px x 1123px
+                  // We want to fit content on one page, so calculate scale
+                  const a4HeightPx = 1123; // A4 height in pixels
+                  const a4WidthPx = 794; // A4 width in pixels
+                  
+                  // Calculate scale to fit height
+                  const heightScale = actualHeight > a4HeightPx ? a4HeightPx / actualHeight : 1;
+                  // Calculate scale to fit width (resumeWidth should fit in a4WidthPx)
+                  const widthScale = resumeWidth > a4WidthPx ? a4WidthPx / resumeWidth : 1;
+                  
+                  // Use the smaller scale to ensure everything fits
+                  const finalScale = Math.min(heightScale, widthScale, 1);
+                  
+                  console.log("Resume element dimensions:", {
+                    width: resumeElement.offsetWidth,
+                    height: actualHeight,
+                    scrollHeight: resumeElement.scrollHeight,
+                    a4Height: a4HeightPx,
+                    heightScale: heightScale,
+                    widthScale: widthScale,
+                    finalScale: finalScale
+                  });
+                  
+                  // Generate PDF with proper settings to fit on one page
+                  html2pdf()
+                    .set({
+                      margin: [0, 0, 0, 0],
+                      filename: `${(resume.title || 'resume').replace(/[^a-z0-9]/gi, '_')}.pdf`,
+                      image: { type: "jpeg", quality: 0.98 },
+                      html2canvas: { 
+                        scale: 2 * finalScale, 
+                        useCORS: true, 
+                        scrollY: 0,
+                        logging: false,
+                        windowWidth: resumeWidth,
+                        width: resumeWidth,
+                        height: actualHeight,
+                        allowTaint: false,
+                        backgroundColor: "#ffffff",
+                        x: 0,
+                        y: 0,
+                        removeContainer: true
+                      },
+                      jsPDF: { 
+                        unit: "mm", 
+                        format: "a4", 
+                        orientation: "portrait",
+                        compress: true
+                      },
+                      pagebreak: { 
+                        mode: ['avoid-all', 'css', 'legacy']
+                      }
+                    })
+                    .from(resumeElement)
+                    .save()
+                    .then(() => {
+                      // Remove the style after PDF generation
+                      const pdfStyle = document.getElementById("pdf-page-break-style");
+                      if (pdfStyle) {
+                        document.head.removeChild(pdfStyle);
+                      }
+                    })
+                    .then(() => {
+                      console.log("✅ Resume downloaded successfully");
+                      cleanup();
+                    })
+                    .catch(err => {
+                      console.error("Error generating PDF:", err);
+                      alert("Error generating PDF: " + err.message);
+                      cleanup();
+                    });
+                }, 1000); // Increased wait time for rendering
+              }, 200);
+            });
+          })
+          .catch(err => {
+            console.error("Error loading template:", err);
+            alert("Error loading template. Please try again.");
+            cleanup();
+          });
+      };
+      
+      // Cleanup function
+      const cleanup = () => {
+        try {
+          // Restore original finalResumePreview if it was swapped
+          const backup = document.getElementById("originalFinalResumePreviewBackup");
+          if (backup) {
+            backup.id = "finalResumePreview";
+          }
+          
+          // Remove temporary container
+          const temp = document.getElementById("tempResumePreview");
+          if (temp && temp.parentNode) {
+            document.body.removeChild(temp);
+          }
+          
+          // Remove temporary CSS if we added it
+          if (!existingCSS && cssLink && cssLink.parentNode) {
+            document.head.removeChild(cssLink);
+          }
+        } catch (e) {
+          console.error("Cleanup error:", e);
+        }
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+      };
+      
+      // If CSS is new, wait for it to load
+      if (!existingCSS && cssLink) {
+        cssLink.onload = loadTemplate;
+        cssLink.onerror = () => {
+          console.error("Error loading CSS");
+          loadTemplate(); // Try anyway
+        };
+        // Fallback timeout
+        setTimeout(() => {
+          if (btn.disabled) {
+            loadTemplate();
+          }
+        }, 3000);
+      } else {
+        loadTemplate();
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching resume:", err);
+      alert("Error loading resume. Please try again.");
+      btn.innerHTML = originalHTML;
+      btn.disabled = false;
+    });
 }
 /* ================= RESUME SCORE BUTTON ================= */
 document.addEventListener("click", async (e) => {
@@ -347,6 +715,118 @@ async function deleteResume(event, resumeId) {
 }
 
 
+// Auto-populate form with sample data
+function autoPopulateAIForm() {
+  // Basic Details
+  document.getElementById("aiName").value = "John Doe";
+  document.getElementById("aiTitle").value = "Software Engineer";
+  document.getElementById("aiEmail").value = "john.doe@email.com";
+  document.getElementById("aiPhone").value = "+1 (555) 123-4567";
+  document.getElementById("aiLocation").value = "San Francisco, CA";
+  document.getElementById("aiSummary").value = "Experienced software engineer with 5+ years of expertise in full-stack development, cloud architecture, and agile methodologies. Passionate about building scalable applications and leading cross-functional teams.";
+
+  // Additional Details
+  document.getElementById("aiLanguages").value = "English\nSpanish\nFrench";
+  document.getElementById("aiCertificates").value = "AWS Certified Solutions Architect\nGoogle Cloud Professional\nCertified Kubernetes Administrator";
+  document.getElementById("aiJD").value = "We are looking for a skilled Software Engineer to join our team. The ideal candidate should have experience with modern web technologies, cloud platforms, and software development best practices.";
+
+  // Education
+  document.getElementById("aiSchool").value = "Stanford University";
+  document.getElementById("aiDegree").value = "Bachelor of Science";
+  document.getElementById("aiField").value = "Computer Science";
+  document.getElementById("aiGradYear").value = "2019";
+
+  // Experience Level
+  document.getElementById("aiExperience").value = "experienced";
+  
+  // Show experience section
+  const expSection = document.getElementById("aiExperienceSection");
+  if (expSection) {
+    expSection.classList.remove("d-none");
+    
+    // Clear existing experience blocks
+    const container = document.getElementById("experienceContainer");
+    if (container) {
+      container.innerHTML = "";
+      
+      // Add sample experience entries
+      const sampleExperiences = [
+        {
+          jobTitle: "Senior Software Engineer",
+          employer: "Tech Corp Inc.",
+          city: "San Francisco",
+          country: "USA",
+          startMonth: "2021-01",
+          endMonth: "2024-12",
+          description: "Led development of microservices architecture serving 1M+ users. Implemented CI/CD pipelines reducing deployment time by 60%. Mentored junior developers and conducted code reviews."
+        },
+        {
+          jobTitle: "Software Engineer",
+          employer: "StartupXYZ",
+          city: "Palo Alto",
+          country: "USA",
+          startMonth: "2019-06",
+          endMonth: "2020-12",
+          description: "Developed RESTful APIs using Node.js and Express. Built responsive frontend components with React. Collaborated with product team to deliver features on time."
+        }
+      ];
+      
+      sampleExperiences.forEach(exp => {
+        // Use the template structure to match the existing format
+        const template = document.getElementById("experienceTemplate");
+        if (template) {
+          const clone = template.content.cloneNode(true);
+          const block = clone.querySelector(".experience-block");
+          
+          // Populate the cloned template with sample data
+          block.querySelector(".exp-title").value = exp.jobTitle;
+          block.querySelector(".exp-employer").value = exp.employer;
+          block.querySelector(".exp-city").value = exp.city;
+          block.querySelector(".exp-country").value = exp.country;
+          block.querySelector(".exp-start").value = exp.startMonth;
+          block.querySelector(".exp-end").value = exp.endMonth;
+          block.querySelector(".exp-desc").value = exp.description;
+          
+          container.appendChild(clone);
+        } else {
+          // Fallback if template not found
+          const block = document.createElement("div");
+          block.className = "experience-block border p-3 mt-3";
+          block.innerHTML = `
+            <input class="form-control mb-2 exp-title" placeholder="Job Title" value="${exp.jobTitle}">
+            <input class="form-control mb-2 exp-employer" placeholder="Employer" value="${exp.employer}">
+            <div class="row">
+              <div class="col">
+                <input class="form-control mb-2 exp-city" placeholder="City" value="${exp.city}">
+              </div>
+              <div class="col">
+                <input class="form-control mb-2 exp-country" placeholder="Country" value="${exp.country}">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col">
+                <input type="month" class="form-control mb-2 exp-start" value="${exp.startMonth}">
+              </div>
+              <div class="col">
+                <input type="month" class="form-control mb-2 exp-end" value="${exp.endMonth}">
+              </div>
+            </div>
+            <textarea class="form-control exp-desc" placeholder="Job Description">${exp.description}</textarea>
+          `;
+          container.appendChild(block);
+        }
+      });
+    }
+  }
+
+  // Skills
+  const skillsField = document.getElementById("skillsField");
+  if (skillsField) {
+    skillsField.classList.remove("d-none");
+    document.getElementById("aiSkills").value = "JavaScript\nPython\nReact\nNode.js\nAWS\nDocker\nKubernetes\nMongoDB\nPostgreSQL\nGit";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const aiBtn = document.getElementById("aiCreateBtn");
   const aiModal = document.getElementById("aiResumeModal");
@@ -366,6 +846,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       document.getElementById("projectsField")
         ?.classList.toggle("d-none", status.projects);
+
+      // Auto-populate form with sample data
+      autoPopulateAIForm();
 
       new bootstrap.Modal(aiModal).show();
     } catch (err) {
@@ -413,6 +896,7 @@ async function submitAIResume() {
           role,
           job_description: jd,
           experience_level: exp,
+          template: "blueCorporate", // Auto-select blueCorporate template
 
           personal: {
               name: document.getElementById("aiName").value || "",
@@ -473,63 +957,244 @@ async function submitAIResume() {
 }
 
 function injectFinalData(data) {
-  if (!data || !data.step1) return;
+  if (!data) {
+    console.warn("No resume data found, trying localStorage fallback");
+    // Fallback to localStorage if API data is missing
+    data = {
+      step1: JSON.parse(localStorage.getItem("step1") || "{}"),
+      step2: JSON.parse(localStorage.getItem("step2") || "{}"),
+      step3: JSON.parse(localStorage.getItem("experiences") || "[]"),
+      step4: JSON.parse(localStorage.getItem("skills") || "[]"),
+      customSections: JSON.parse(localStorage.getItem("customSections") || "[]")
+    };
+    console.log("Using localStorage fallback data:", data);
+  }
+  
+  if (!data.step1) {
+    console.warn("No step1 data found in resume data:", data);
+    // Try to continue with other steps if step1 is missing
+  }
+
+  console.log("=== INJECTING FINAL DATA ===");
+  console.log("step1:", JSON.stringify(data.step1, null, 2));
+  console.log("step2:", JSON.stringify(data.step2, null, 2));
+  console.log("step3:", JSON.stringify(data.step3, null, 2));
+  console.log("step4:", JSON.stringify(data.step4, null, 2));
+  console.log("customSections:", JSON.stringify(data.customSections, null, 2));
+  
+  // Debug: Check if elements exist
+  console.log("Checking elements exist:");
+  console.log("previewName:", document.getElementById("previewName"));
+  console.log("previewTitle:", document.getElementById("previewTitle"));
+  console.log("previewEmail:", document.getElementById("previewEmail"));
+  console.log("previewPhone:", document.getElementById("previewPhone"));
+  console.log("previewLocation:", document.getElementById("previewLocation"));
+  console.log("previewSkills:", document.getElementById("previewSkills"));
+  console.log("pLanguages:", document.getElementById("pLanguages"));
+  console.log("pCerts:", document.getElementById("pCerts"));
 
   /* ========== BASIC INFO ========== */
-  setText("previewName", data.step1.name);
-  setText("previewTitle", data.step1.title);
-  setText("previewEmail", data.step1.email);
-  setText("previewPhone", data.step1.phone);
-  setText("previewLocation", data.step1.location);
+  if (data.step1) {
+    const name = data.step1.name || "";
+    const title = data.step1.title || "";
+    const email = data.step1.email || "";
+    const phone = data.step1.phone || "";
+    const location = data.step1.location || "";
+    
+    console.log("Setting basic info:", { name, title, email, phone, location });
+    
+    const nameEl = document.getElementById("previewName");
+    const titleEl = document.getElementById("previewTitle");
+    const emailEl = document.getElementById("previewEmail");
+    const phoneEl = document.getElementById("previewPhone");
+    const locationEl = document.getElementById("previewLocation");
+    
+    if (nameEl) {
+      nameEl.textContent = name;
+      nameEl.style.display = name ? "" : "none";
+      console.log("Set previewName to:", name, "Element:", nameEl);
+    } else {
+      console.error("previewName element not found!");
+    }
+    
+    if (titleEl) {
+      titleEl.textContent = title;
+      titleEl.style.display = title ? "" : "none";
+      console.log("Set previewTitle to:", title);
+    }
+    
+    if (emailEl) {
+      emailEl.textContent = email;
+      emailEl.style.display = email ? "" : "none";
+      console.log("Set previewEmail to:", email);
+    }
+    
+    if (phoneEl) {
+      phoneEl.textContent = phone;
+      phoneEl.style.display = phone ? "" : "none";
+      console.log("Set previewPhone to:", phone);
+    }
+    
+    if (locationEl) {
+      locationEl.textContent = location;
+      locationEl.style.display = location ? "" : "none";
+      console.log("Set previewLocation to:", location);
+    }
+  } else {
+    console.warn("data.step1 is missing or empty");
+  }
 
   /* ========== SKILLS ========== */
-  const skills = Array.isArray(data.step4)
-    ? data.step4.map(s => typeof s === "string" ? s : s?.name).filter(Boolean)
-    : [];
+  let skills = [];
+  if (Array.isArray(data.step4)) {
+    skills = data.step4.map(s => typeof s === "string" ? s : s?.name).filter(Boolean);
+  } else if (typeof data.step4 === "string" && data.step4.trim()) {
+    // Handle string format (newline-separated) as fallback
+    skills = data.step4.split("\n").map(s => s.trim()).filter(Boolean);
+  }
 
   const skillsBox = document.getElementById("previewSkills");
-  if (skillsBox && skills.length) {
-    skillsBox.innerHTML = skills.map(s => `<li>${s}</li>`).join("");
-    revealSection(skillsBox);
+  const skillsSection = document.getElementById("skillsSection");
+  if (skillsBox) {
+    console.log("Setting skills:", skills);
+    if (skills.length) {
+      skillsBox.innerHTML = skills.map(s => `<li>${s}</li>`).join("");
+      skillsBox.style.display = "";
+      console.log("Skills box innerHTML set to:", skillsBox.innerHTML);
+      revealSection(skillsBox);
+      if (skillsSection) {
+        skillsSection.classList.remove("hide-section");
+        skillsSection.style.display = "";
+      }
+    } else {
+      skillsBox.innerHTML = "";
+      skillsBox.style.display = "none";
+      if (skillsSection) {
+        skillsSection.classList.add("hide-section");
+        skillsSection.style.display = "none";
+      }
+    }
+  } else {
+    console.error("previewSkills element not found!");
   }
 
   /* ========== SUMMARY ========== */
   const summaryEl = document.getElementById("previewSummary");
   if (summaryEl) {
-    summaryEl.innerHTML = highlightKeywords(
-      data.step1.summary || "",
-      skills
-    );
+    const summary = data.step1?.summary || "";
+    console.log("Setting summary:", summary);
+    if (summary) {
+      summaryEl.innerHTML = highlightKeywords(summary, skills);
+      summaryEl.style.display = "";
+      console.log("Summary set, innerHTML:", summaryEl.innerHTML);
+      revealSection(summaryEl);
+    } else {
+      summaryEl.innerHTML = "";
+      summaryEl.style.display = "none";
+    }
+  } else {
+    console.error("previewSummary element not found!");
   }
 
   /* ========== LANGUAGES ========== */
   const langList = document.getElementById("pLanguages");
-  if (langList && Array.isArray(data.step1.languages) && data.step1.languages.length) {
-    langList.innerHTML = data.step1.languages
-      .map(l => `<li>${l}</li>`)
-      .join("");
-    revealSection(langList);
+  if (langList) {
+    // Handle both string (newline-separated) and array formats
+    let languages = [];
+    if (data.step1) {
+      if (Array.isArray(data.step1.languages)) {
+        languages = data.step1.languages;
+      } else if (typeof data.step1.languages === "string" && data.step1.languages.trim()) {
+        languages = data.step1.languages.split("\n").map(l => l.trim()).filter(Boolean);
+      }
+    }
+    
+    if (languages.length) {
+      langList.innerHTML = languages.map(l => `<li>${l}</li>`).join("");
+      langList.style.display = "";
+      revealSection(langList);
+    } else {
+      langList.innerHTML = "";
+      langList.style.display = "none";
+    }
   }
 
   /* ========== CERTIFICATIONS ========== */
   const certList = document.getElementById("pCerts");
-  if (certList && Array.isArray(data.step1.certificates) && data.step1.certificates.length) {
-    certList.innerHTML = data.step1.certificates
-      .map(c => `<li>${c}</li>`)
-      .join("");
-    revealSection(certList);
+  if (certList) {
+    // Handle both string (newline-separated) and array formats
+    // Check for both 'certificates' and 'certs' keys
+    let certificates = [];
+    if (data.step1) {
+      const certData = data.step1.certificates || data.step1.certs;
+      
+      if (Array.isArray(certData)) {
+        certificates = certData;
+      } else if (typeof certData === "string" && certData.trim()) {
+        certificates = certData.split("\n").map(c => c.trim()).filter(Boolean);
+      }
+    }
+    
+    if (certificates.length) {
+      certList.innerHTML = certificates.map(c => `<li>${c}</li>`).join("");
+      certList.style.display = "";
+      revealSection(certList);
+    } else {
+      certList.innerHTML = "";
+      certList.style.display = "none";
+    }
   }
 
   /* ========== EDUCATION ========== */
   if (data.step2) {
-    setText("previewDegree", data.step2.degree);
-    setText("previewField", data.step2.field);
-    setText("previewEduInstitute", data.step2.institution);
-    setText("previewGraduation", data.step2.year);
+    // Map step2 fields (school, degree, field, month, etc.) to template IDs
+    const degree = data.step2.degree || "";
+    const field = data.step2.field || "";
+    const school = data.step2.school || data.step2.institution || "";
+    const location = data.step2.location || "";
+    
+    setText("previewDegree", degree);
+    setText("previewField", field);
+    setText("previewEduInstitute", school);
+    setText("previewEduLocation", location);
+    
+    // Format graduation date
+    if (data.step2.month) {
+      const dateText = data.step2.current
+        ? `Expected ${formatMonth(data.step2.month)}`
+        : formatMonth(data.step2.month);
+      setText("previewGraduation", dateText);
+    } else if (data.step2.year) {
+      setText("previewGraduation", data.step2.year);
+    } else {
+      // Clear graduation date if neither month nor year exists
+      setText("previewGraduation", "");
+    }
+
+    // Handle education details
+    const eduDetailsEl = document.getElementById("previewEduDetails");
+    if (eduDetailsEl && Array.isArray(data.step2.details) && data.step2.details.length) {
+      eduDetailsEl.innerHTML = data.step2.details.map(d => `<li>${d}</li>`).join("");
+      eduDetailsEl.style.display = "";
+    }
 
     const edu = document.getElementById("educationSection");
-    edu?.classList.remove("hide-section");
-    edu?.classList.add("show");
+    if (edu) {
+      if (degree || field || school) {
+        edu.classList.remove("hide-section");
+        edu.classList.add("show");
+        edu.style.display = "";
+        
+        // Ensure all education fields are visible
+        if (degree) document.getElementById("previewDegree")?.style.setProperty("display", "", "important");
+        if (field) document.getElementById("previewField")?.style.setProperty("display", "", "important");
+        if (school) document.getElementById("previewEduInstitute")?.style.setProperty("display", "", "important");
+        if (location) document.getElementById("previewEduLocation")?.style.setProperty("display", "", "important");
+      } else {
+        edu.classList.add("hide-section");
+        edu.style.display = "none";
+      }
+    }
   }
 
   /* ========== EXPERIENCE ========== */
@@ -538,30 +1203,195 @@ function injectFinalData(data) {
     const list = document.getElementById("previewExperienceList");
 
     if (sec && list) {
-      list.innerHTML = data.step3.map(exp => `
-        <div class="mb-3">
-          <strong>
-            ${exp.jobTitle || ""}
-            ${exp.employer ? " – " + exp.employer : ""}
-          </strong><br>
-          <small>
-            ${exp.city || ""}${exp.country ? ", " + exp.country : ""}
-          </small><br>
-          <small>
-            ${(exp.startMonth || exp.startDate || "")}
-            ${(exp.endMonth || exp.endDate) ? " – " + (exp.endMonth || exp.endDate) : ""}
-          </small>
-          <p>${exp.description || ""}</p>
-        </div>
-      `).join("");
+      list.innerHTML = data.step3.map(exp => {
+        const jobTitle = exp.jobTitle || "";
+        const employer = exp.employer || "";
+        const city = exp.city || "";
+        const country = exp.country || "";
+        const startDate = exp.startMonth || exp.startDate || "";
+        const endDate = exp.endMonth || exp.endDate || "";
+        const description = exp.description || "";
+        
+        // Format description as list if it contains newlines
+        const descHtml = description.includes("\n")
+          ? `<ul>${description.split("\n").filter(Boolean).map(d => `<li>${d}</li>`).join("")}</ul>`
+          : `<p>${description}</p>`;
+        
+        return `
+          <div class="mb-3">
+            <strong>${jobTitle}${employer ? " – " + employer : ""}</strong><br>
+            ${city || country ? `<small>${city}${city && country ? ", " : ""}${country}</small><br>` : ""}
+            ${startDate || endDate ? `<small>${startDate}${endDate ? " – " + endDate : ""}</small>` : ""}
+            ${descHtml}
+          </div>
+        `;
+      }).join("");
 
       sec.classList.remove("hide-section");
       sec.classList.add("show");
+      sec.style.display = "";
+      console.log("Experience section shown with", data.step3.length, "items");
+    }
+  } else {
+    // Hide experience section if no data
+    const sec = document.getElementById("previewExperienceSection");
+    if (sec) {
+      sec.classList.add("hide-section");
+      sec.style.display = "none";
+    }
+  }
+
+  /* ========== CUSTOM SECTIONS ========== */
+  const customSections = data.customSections || [];
+  console.log("Custom sections found:", customSections.length, customSections);
+  
+  // Remove existing custom sections from preview
+  document.querySelectorAll(".custom-section-final").forEach(el => el.remove());
+  
+  if (customSections.length) {
+    console.log("Processing custom sections for template...");
+    console.log("Custom sections data:", customSections);
+    
+    // Find the right panel (main content area) - prioritize content-column for blue-corporate
+    let rightPanel = document.querySelector(".content-column");
+    if (!rightPanel) {
+      rightPanel = document.querySelector(".right-panel");
+    }
+    if (!rightPanel) {
+      rightPanel = document.querySelector("main");
+    }
+    if (!rightPanel) {
+      // Fallback: find main content area by looking for sections
+      rightPanel = document.querySelector("#previewExperienceSection")?.parentElement || 
+                   document.querySelector("#educationSection")?.parentElement;
+    }
+    
+    console.log("Right panel found:", rightPanel, "Class:", rightPanel?.className, "Tag:", rightPanel?.tagName);
+    
+    if (rightPanel) {
+      // Detect template type by checking existing section classes and structure
+      const existingSection = rightPanel.querySelector(".content-card") || rightPanel.querySelector(".main-section") || rightPanel.querySelector(".card-content") || rightPanel.querySelector("section");
+      console.log("Existing section found:", existingSection, "Classes:", existingSection?.className);
+      
+      let sectionClass = "main-section";
+      let useWrapper = false;
+      let wrapperClass = "";
+      
+      if (existingSection) {
+        // Check for blue-corporate template (uses content-card)
+        if (existingSection.classList.contains("content-card")) {
+          sectionClass = "content-card";
+          console.log("Detected blue-corporate template, using content-card class");
+        } 
+        // Check for academic-yellow template (uses main-section card-content with inner structure)
+        else if (existingSection.classList.contains("card-content")) {
+          sectionClass = "main-section card-content";
+          useWrapper = true;
+          wrapperClass = "content-box";
+          console.log("Detected academic-yellow template");
+        } 
+        // Default to main-section
+        else {
+          sectionClass = "main-section";
+          console.log("Using default main-section class");
+        }
+      }
+      
+      customSections.forEach((section, index) => {
+        const sectionEl = document.createElement("section");
+        sectionEl.className = `${sectionClass} custom-section-final`;
+        sectionEl.id = `customSectionFinal${index}`;
+        
+        // Format description - handle newlines
+        const descHtml = section.description.includes("\n")
+          ? `<ul>${section.description.split("\n").filter(Boolean).map(d => `<li>${escapeHtml(d)}</li>`).join("")}</ul>`
+          : `<p>${escapeHtml(section.description)}</p>`;
+        
+        // Check if template uses wrapper structure (like academic-yellow)
+        if (useWrapper && wrapperClass) {
+          sectionEl.innerHTML = `
+            <div class="section-title">
+              <span class="title-icon">📋</span>
+              <h3>${escapeHtml(section.name.toUpperCase())}</h3>
+            </div>
+            <div class="${wrapperClass}">
+              ${descHtml}
+            </div>
+          `;
+        } else {
+          sectionEl.innerHTML = `
+            <h3>${escapeHtml(section.name.toUpperCase())}</h3>
+            ${descHtml}
+          `;
+        }
+        
+        // Insert after experience section if it exists, otherwise append
+        const experienceSection = rightPanel.querySelector("#previewExperienceSection");
+        console.log("Experience section found:", experienceSection, "Display:", experienceSection?.style.display, "Classes:", experienceSection?.className);
+        
+        if (experienceSection) {
+          // Insert after the experience section
+          experienceSection.insertAdjacentElement("afterend", sectionEl);
+          console.log("✅ Inserted custom section after experience section");
+        } else {
+          // If no experience section, find the last section or append to the end
+          const allSections = rightPanel.querySelectorAll("section");
+          const lastSection = allSections[allSections.length - 1];
+          console.log("All sections found:", allSections.length, "Last section:", lastSection);
+          
+          if (lastSection) {
+            lastSection.insertAdjacentElement("afterend", sectionEl);
+            console.log("✅ Inserted custom section after last section");
+          } else {
+            rightPanel.appendChild(sectionEl);
+            console.log("✅ Appended custom section to end of right panel");
+          }
+        }
+        
+        // Ensure section is visible - remove hide-section class and set display
+        sectionEl.classList.remove("hide-section");
+        sectionEl.style.display = "";
+        sectionEl.style.visibility = "visible";
+        
+        // Force visibility for blue-corporate template (content-card)
+        if (sectionClass === "content-card") {
+          sectionEl.style.display = "block";
+        }
+        
+        // Verify it's actually in the DOM
+        const isInDOM = document.body.contains(sectionEl);
+        const computedDisplay = window.getComputedStyle(sectionEl).display;
+        const computedVisibility = window.getComputedStyle(sectionEl).visibility;
+        
+        console.log("✅ Added custom section:", section.name);
+        console.log("   Class:", sectionClass);
+        console.log("   Element:", sectionEl);
+        console.log("   Parent:", sectionEl.parentElement);
+        console.log("   In DOM:", isInDOM);
+        console.log("   Computed display:", computedDisplay);
+        console.log("   Computed visibility:", computedVisibility);
+        
+        if (!isInDOM || computedDisplay === "none") {
+          console.error("❌ Custom section not visible! Display:", computedDisplay, "Visibility:", computedVisibility);
+        }
+      });
+    } else {
+      console.error("❌ Right panel not found! Cannot add custom sections.");
     }
   }
 }
+
+
 function revealSection(el) {
-  if (!el) return;
+  if (!el) {
+    console.warn("revealSection called with null element");
+    return;
+  }
+
+  // Ensure the element itself is visible
+  el.style.display = "";
+  el.style.visibility = "visible";
+  el.classList.remove("hide-section");
 
   // try common wrappers used by templates
   const wrapper =
@@ -572,6 +1402,9 @@ function revealSection(el) {
   if (wrapper) {
     wrapper.classList.remove("hide-section");
     wrapper.classList.add("show");
+    wrapper.style.display = "";
+    wrapper.style.visibility = "visible";
+    console.log("Revealed section:", wrapper);
   }
 }
 
@@ -600,8 +1433,281 @@ if (expSelect) {
 }
 
 
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function addExperienceField() {
   const tpl = document.getElementById("experienceTemplate");
   const clone = tpl.content.cloneNode(true);
   document.getElementById("experienceContainer").appendChild(clone);
 }
+
+/* ================= ATS RESUME SCORE CHECKER ================= */
+
+// Load saved resumes into dropdown when modal opens
+document.getElementById("atsCheckModal")?.addEventListener("show.bs.modal", async function() {
+  const select = document.getElementById("savedResumeSelect");
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">Loading resumes...</option>';
+  
+  try {
+    const response = await fetch("/api/resumes/", { credentials: "include" });
+    const resumes = await response.json();
+    
+    if (resumes && resumes.length > 0) {
+      select.innerHTML = '<option value="">Select a resume...</option>';
+      resumes.forEach(resume => {
+        const option = document.createElement("option");
+        option.value = resume._id;
+        
+        // Format display text with template and date for easy identification
+        let displayText = resume.title || "Untitled Resume";
+        
+        // Add template name if available
+        if (resume.template) {
+          const templateNames = {
+            academicYellow: "Academic Yellow",
+            professionalBlue: "Professional Blue",
+            minimalElegant: "Minimal Elegant",
+            blueCorporate: "Blue Corporate",
+            softGreenMinimal: "Soft Green",
+            darkElegant: "Dark Elegant",
+            timelineResume: "Timeline",
+            boldRedAccent: "Bold Red",
+            cardBased: "Card Based",
+            glassmorphism: "Glassmorphism",
+            infographic: "Infographic",
+            ultraMinimal: "Ultra Minimal",
+            boxShadow: "Box Shadow",
+            classicSerif: "Classic Serif",
+            freshGradient: "Fresh Gradient",
+            splitHeaderModern: "Split Header",
+            techLook: "Tech Look",
+            ultraClean: "Ultra Clean"
+          };
+          const templateDisplay = templateNames[resume.template] || resume.template;
+          
+          // Format date if available
+          let dateInfo = "";
+          if (resume.created_at) {
+            try {
+              const date = new Date(resume.created_at);
+              dateInfo = ` • ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+            } catch (e) {
+              // Ignore date parsing errors
+            }
+          }
+          
+          // Show: "Title [Template] • Date"
+          displayText = `${displayText} [${templateDisplay}]${dateInfo}`;
+        }
+        
+        option.textContent = displayText;
+        option.title = displayText; // Tooltip for full text
+        select.appendChild(option);
+      });
+    } else {
+      select.innerHTML = '<option value="">No saved resumes found</option>';
+    }
+  } catch (error) {
+    console.error("Error loading resumes:", error);
+    select.innerHTML = '<option value="">Error loading resumes</option>';
+  }
+});
+
+document.getElementById("atsCheckForm")?.addEventListener("submit", async function(e) {
+  e.preventDefault();
+  
+  const form = e.target;
+  const checkBtn = document.getElementById("checkAtsBtn");
+  const resultsDiv = document.getElementById("atsResults");
+  const jobDescTextarea = document.getElementById("jobDescription");
+  
+  // Validate job description
+  if (!jobDescTextarea.value.trim()) {
+    alert("Please paste the job description.");
+    return;
+  }
+  
+  // Validate resume selection
+  const resumeId = document.getElementById("savedResumeSelect").value;
+  if (!resumeId) {
+    alert("Please select a saved resume.");
+    return;
+  }
+  
+  // Show loading state
+  const originalBtnText = checkBtn.innerHTML;
+  checkBtn.disabled = true;
+  checkBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Analyzing...';
+  resultsDiv.style.display = "none";
+  
+  try {
+    // Use saved resume method
+    const response = await fetch("/api/ats/check-from-resume", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        resume_id: resumeId,
+        job_description: jobDescTextarea.value.trim()
+      }),
+      credentials: "include"
+    });
+    
+    const data = await response.json();
+    
+    console.log("ATS Check Response:", data);
+    console.log("ATS Score received:", data.ats_score);
+    console.log("Keyword Match:", data.keyword_match_percent);
+    console.log("Structure Score:", data.structure_score);
+    console.log("Formatting Score:", data.formatting_score);
+    
+    if (!response.ok || data.error) {
+      throw new Error(data.error || "Failed to analyze resume");
+    }
+    
+    // Verify score is valid
+    if (data.ats_score === undefined || data.ats_score === null) {
+      console.error("ATS score is missing from response:", data);
+      throw new Error("Invalid response: ATS score not found");
+    }
+    
+    // Display results
+    displayATSResults(data);
+    resultsDiv.style.display = "block";
+    
+    // Scroll to results
+    resultsDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+    
+  } catch (error) {
+    console.error("ATS Check Error:", error);
+    alert("Error analyzing resume:\n\n" + error.message);
+  } finally {
+    // Reset button
+    checkBtn.disabled = false;
+    checkBtn.innerHTML = originalBtnText;
+  }
+});
+
+function displayATSResults(data) {
+  // Display score - ensure we're using the actual score from the response
+  console.log("displayATSResults called with data:", data);
+  console.log("Raw ats_score value:", data.ats_score, "Type:", typeof data.ats_score);
+  
+  // Parse score properly - handle string or number
+  let scoreValue = 0;
+  if (data.ats_score !== undefined && data.ats_score !== null) {
+    scoreValue = typeof data.ats_score === 'string' ? parseFloat(data.ats_score) : data.ats_score;
+    scoreValue = Math.round(scoreValue);
+  }
+  
+  console.log("Calculated scoreValue:", scoreValue);
+  
+  const scoreValueEl = document.getElementById("atsScoreValue");
+  if (scoreValueEl) {
+    scoreValueEl.textContent = scoreValue;
+    console.log("Set atsScoreValue element to:", scoreValue);
+  } else {
+    console.error("atsScoreValue element not found!");
+  }
+  
+  // Score message
+  const scoreMessage = document.getElementById("atsScoreMessage");
+  if (scoreMessage) {
+    if (scoreValue >= 80) {
+      scoreMessage.textContent = "Excellent! Your resume is highly ATS-compatible.";
+      scoreMessage.className = "text-success";
+    } else if (scoreValue >= 60) {
+      scoreMessage.textContent = "Good! Some improvements can be made.";
+      scoreMessage.className = "text-warning";
+    } else {
+      scoreMessage.textContent = "Needs improvement for better ATS compatibility.";
+      scoreMessage.className = "text-danger";
+    }
+  }
+  
+  // Update score circle color based on score
+  const scoreCircle = document.querySelector(".ats-score-circle");
+  if (scoreCircle) {
+    if (scoreValue >= 80) {
+      scoreCircle.style.background = "linear-gradient(135deg, var(--neon-green) 0%, var(--neon-hover) 100%)";
+    } else if (scoreValue >= 60) {
+      scoreCircle.style.background = "linear-gradient(135deg, #ffc107 0%, #ff9800 100%)";
+    } else {
+      scoreCircle.style.background = "linear-gradient(135deg, #ff4444 0%, #cc0000 100%)";
+    }
+  }
+  
+  // Keyword match percentage
+  const keywordMatchPercent = data.keyword_match_percent || 0;
+  const keywordMatchBar = document.getElementById("keywordMatchBar");
+  const keywordMatchPercentSpan = document.getElementById("keywordMatchPercent");
+  if (keywordMatchBar) {
+    keywordMatchBar.style.width = keywordMatchPercent + "%";
+  }
+  if (keywordMatchPercentSpan) {
+    keywordMatchPercentSpan.textContent = keywordMatchPercent.toFixed(1) + "%";
+  }
+  
+  // Missing keywords
+  const missingKeywordsDiv = document.getElementById("missingKeywords");
+  if (missingKeywordsDiv) {
+    if (data.missing_keywords && data.missing_keywords.length > 0) {
+      missingKeywordsDiv.innerHTML = data.missing_keywords
+        .map(kw => `<span class="keyword-tag">${escapeHtml(kw)}</span>`)
+        .join("");
+    } else {
+      missingKeywordsDiv.innerHTML = '<span class="text-success">No missing keywords detected!</span>';
+    }
+  }
+  
+  // Sections found
+  const sectionsFoundDiv = document.getElementById("sectionsFound");
+  const sections = data.sections_found || {};
+  const allSections = {
+    "Summary": sections.summary || false,
+    "Skills": sections.skills || false,
+    "Experience": sections.experience || false,
+    "Education": sections.education || false,
+    "Projects": sections.projects || false,
+    "Certifications": sections.certifications || false,
+    "Languages": sections.languages || false
+  };
+  
+  sectionsFoundDiv.innerHTML = Object.entries(allSections)
+    .map(([name, found]) => {
+      const badgeClass = found ? "section-found" : "section-missing";
+      const icon = found ? "✓" : "✗";
+      return `<span class="section-badge ${badgeClass}">${icon} ${name}</span>`;
+    })
+    .join("");
+  
+  // Formatting issues
+  const formattingIssuesSection = document.getElementById("formattingIssuesSection");
+  const formattingIssuesList = document.getElementById("formattingIssues");
+  if (data.formatting_issues && data.formatting_issues.length > 0) {
+    formattingIssuesSection.style.display = "block";
+    formattingIssuesList.innerHTML = data.formatting_issues
+      .map(issue => `<li>${escapeHtml(issue)}</li>`)
+      .join("");
+  } else {
+    formattingIssuesSection.style.display = "none";
+  }
+  
+  // AI suggestions
+  const aiSuggestionsList = document.getElementById("aiSuggestions");
+  if (data.ai_suggestions && data.ai_suggestions.length > 0) {
+    aiSuggestionsList.innerHTML = data.ai_suggestions
+      .map(suggestion => `<li>${escapeHtml(suggestion)}</li>`)
+      .join("");
+  } else {
+    aiSuggestionsList.innerHTML = '<li>No specific suggestions available.</li>';
+  }
+}
+

@@ -2,7 +2,19 @@
 
     <aside class="sidebar">
 
-      <div class="avatar"></div>
+      <div class="profile-icon">
+        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="60" r="60" fill="url(#modernGrad1)"/>
+          <circle cx="60" cy="45" r="20" fill="#fff" opacity="0.95"/>
+          <path d="M25 90 C25 72, 40 62, 60 62 C80 62, 95 72, 95 90" fill="#fff" opacity="0.95"/>
+          <defs>
+            <linearGradient id="modernGrad1" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#667eea"/>
+              <stop offset="100%" stop-color="#764ba2"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
 
       <div class="side-block">
         <h4>Contact</h4>
@@ -10,6 +22,8 @@
         <p id="previewEmail" class="value"></p>
         <p class="label">Phone</p>
         <p id="previewPhone" class="value"></p>
+        <p class="label">Location</p>
+        <p id="previewLocation" class="value"></p>
       </div>
 
       <div class="side-block">
@@ -22,7 +36,7 @@
         <ul id="pCerts" class="skills-list"></ul>
       </div>
 
-      <div class="side-block">
+      <div class="side-block" id="skillsSection">
         <h4>Skills</h4>
         <ul id="previewSkills" class="skills-list"></ul>
       </div>
@@ -38,7 +52,17 @@
       <p id="previewSummary"></p>
 
       <!-- EDUCATION -->
-      <section id="educationSection" class="content-block"></section>
+      <section id="educationSection" class="content-block">
+        <h3>EDUCATION</h3>
+        <div class="edu-item">
+          <p id="previewDegree"></p>
+          <p id="previewField"></p>
+          <p id="previewEduInstitute"></p>
+          <p id="previewEduLocation"></p>
+          <p id="previewGraduation"></p>
+          <ul id="previewEduDetails"></ul>
+        </div>
+      </section>
 
       <!-- EXPERIENCE -->
       <section id="previewExperienceSection" class="content-block">

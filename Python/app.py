@@ -22,6 +22,7 @@ from Controller.admin_analytics_controller import admin_analytics_bp
 from Controller.admin_user_action_controller import admin_user_action_bp
 from Controller.ai_resume_controller import ai_resume_bp
 from Controller.skill_controller import skill_bp
+from Controller.ats_controller import ats_bp
 from api.admin.chatbot import chatbot_bp
 
 def create_app():
@@ -108,6 +109,7 @@ def create_app():
     app.register_blueprint(chatbot_bp, url_prefix="/api/admin")
     app.register_blueprint(ai_resume_bp)
     app.register_blueprint(skill_bp, url_prefix="/api/skills")
+    app.register_blueprint(ats_bp)  # /api/ats/*
     print("Flask app initialized successfully")
     # Avoid printing secrets to console logs
     print("OPENAI_API_KEY set =", bool(os.getenv("OPENAI_API_KEY")))

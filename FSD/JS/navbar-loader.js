@@ -29,10 +29,14 @@ async function loadNavbarUser() {
     if (usernameEl && data.user) {
       const name = data.user.name || "User";
       const id = data.user.id || "";
-      usernameEl.textContent = `${name} ${id}`;
+      // Update username - show name only (remove id if not needed)
+      usernameEl.textContent = name;
     }
 
   } catch (err) {
     console.error("Navbar user fetch failed", err);
   }
 }
+
+// Make function globally accessible for other scripts
+window.loadNavbarUser = loadNavbarUser;

@@ -21,6 +21,22 @@
   padding: 30px 20px;
 }
 
+.profile-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 25px;
+}
+
+.profile-icon svg {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: transform 0.3s ease;
+}
+
+.profile-icon:hover svg {
+  transform: scale(1.05);
+}
+
 .right-panel {
   width: 70%;
   padding: 35px;

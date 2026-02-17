@@ -1,68 +1,129 @@
 <div class="resume academic-yellow">
 
-  <!-- TOP HEADER -->
+  <!-- MODERN HEADER WITH YELLOW ACCENT -->
   <header class="top-header">
-    <h1 id="previewName"></h1>
-    <p id="previewTitle"></p>
+    <div class="header-content">
+      <div class="header-left">
+        <h1 id="previewName"></h1>
+        <p id="previewTitle"></p>
+      </div>
+      <div class="header-right">
+        <div class="contact-info">
+          <div class="contact-item">
+            <span class="contact-icon"></span>
+            <span id="previewPhone"></span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon"></span>
+            <span id="previewEmail"></span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-icon"></span>
+            <span id="previewLocation"></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </header>
 
   <div class="body">
 
-    <!-- LEFT SIDEBAR -->
+    <!-- LEFT SIDEBAR - MODERN CARD DESIGN -->
     <aside class="left-panel">
+      
+      <!-- <div class="profile-card">
+        <div class="profile-icon">
+          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="60" fill="url(#gradient1)"/>
+            <circle cx="60" cy="45" r="20" fill="#fff" opacity="0.9"/>
+            <path d="M30 95 C30 75, 45 65, 60 65 C75 65, 90 75, 90 95" fill="#fff" opacity="0.9"/>
+            <defs>
+              <linearGradient id="gradient1" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#ffd83d"/>
+                <stop offset="100%" stop-color="#ffed4e"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div> -->
 
-      <div class="photo"></div>
-
-      <section class="side-section">
-        <h3>CONTACT</h3>
-        <p id="previewPhone"></p>
-        <p id="previewEmail"></p>
-        <p id="previewLocation"></p>
+      <!-- SKILLS SECTION -->
+      <section class="side-section card-modern" id="skillsSection">
+        <div class="section-header">
+          <span class="section-icon"></span>
+          <h3>SKILLS</h3>
+        </div>
+        <ul id="previewSkills" class="skills-grid"></ul>
       </section>
 
-      <section class="side-section">
-        <h3>CERTIFICATIONS</h3>
-        <ul id="pCerts"></ul>
+      <!-- LANGUAGES SECTION -->
+      <section class="side-section card-modern">
+        <div class="section-header">
+          <span class="section-icon"></span>
+          <h3>LANGUAGES</h3>
+        </div>
+        <ul id="pLanguages" class="languages-list"></ul>
       </section>
 
-      <section class="side-section">
-        <h3>LANGUAGES</h3>
-        <ul id="pLanguages"></ul>
+      <!-- CERTIFICATIONS SECTION -->
+      <section class="side-section card-modern">
+        <div class="section-header">
+          <span class="section-icon"></span>
+          <h3>CERTIFICATIONS</h3>
+        </div>
+        <ul id="pCerts" class="certs-list"></ul>
       </section>
 
     </aside>
 
-    <!-- RIGHT CONTENT -->
+    <!-- RIGHT CONTENT - MODERN LAYOUT -->
     <main class="right-panel">
 
-      <section class="main-section">
-        <h3>CAREER OBJECTIVE</h3>
-        <p id="previewSummary"></p>
-      </section>
-
-      <!-- SKILLS -->
-      <section class="main-section" id="skillsSection">
-        <h3>SKILLS</h3>
-        <ul id="previewSkills"></ul>
-      </section>
-
-      <!-- EDUCATION -->
-      <section class="main-section" id="educationSection">
-        <h3>EDUCATION</h3>
-        <div class="edu-item">
-          <p id="previewDegree"></p>
-          <p id="previewField"></p>
-          <p id="previewEduInstitute"></p>
-          <p id="previewEduLocation"></p>
-          <p id="previewGraduation"></p>
-          <ul id="previewEduDetails"></ul>
+      <!-- CAREER OBJECTIVE -->
+      <section class="main-section card-content">
+        <div class="section-title">
+          <span class="title-icon"></span>
+          <h3>CAREER OBJECTIVE</h3>
+        </div>
+        <div class="content-box">
+          <p id="previewSummary"></p>
         </div>
       </section>
 
-      <!-- EXPERIENCE (CORRECT, SINGLE, PRINT-SAFE) -->
-      <section class="main-section hide-section" id="previewExperienceSection">
-        <h3>EXPERIENCE</h3>
-        <div id="previewExperienceList"></div>
+      <!-- EDUCATION -->
+      <section class="main-section card-content" id="educationSection">
+        <div class="section-title">
+          <span class="title-icon"></span>
+          <h3>EDUCATION</h3>
+        </div>
+        <div class="content-box">
+          <div class="edu-item">
+            <div class="edu-header">
+              <strong id="previewDegree"></strong>
+              <span class="edu-field" id="previewField"></span>
+            </div>
+            <div class="edu-details">
+              <span id="previewEduInstitute"></span>
+              <span class="separator">|</span>
+              <span id="previewEduLocation"></span>
+            </div>
+            <div class="edu-date">
+              <span id="previewGraduation"></span>
+            </div>
+            <ul id="previewEduDetails" class="edu-achievements"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- EXPERIENCE -->
+      <section class="main-section card-content hide-section" id="previewExperienceSection">
+        <div class="section-title">
+          <span class="title-icon"></span>
+          <h3>WORK EXPERIENCE</h3>
+        </div>
+        <div class="content-box">
+          <div id="previewExperienceList" class="experience-list"></div>
+        </div>
       </section>
 
     </main>
