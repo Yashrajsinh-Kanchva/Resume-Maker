@@ -1,77 +1,151 @@
-Markdown
-# Resume Maker
+# Resume Maker Clean
 
-A modern, ATS-friendly web application designed to simplify the resume creation process. This project features a sleek **dark-themed UI** with **neon green accents** and **glass-morphism** effects, offering a visually engaging experience for users to build professional resumes.
+Resume Maker Clean is a **full-stack web application** that allows users to create **ATS-friendly resumes** using a structured form and live preview.  
+The project follows a **clean separation of frontend and backend**, using **Python (Flask)** for server-side logic and **HTML, CSS, and JavaScript** for the UI.
+
+This project is suitable for academic submissions, portfolio projects, and further extension into a production-ready resume builder.
+
+---
 
 ## 🚀 Features
 
-- **Immersive UI/UX**: Built with a "Cyberpunk" inspired aesthetic, featuring a dark mode interface, neon green highlights, and glass-morphism elements for a modern look.
-- **Split-Screen Workspace**: Real-time editing experience with a **Form Editor** on one side and a **Live A4 Preview** on the other, ensuring your resume looks exactly how it will print.
-- **Multi-Step Builder**: A guided wizard that simplifies data entry across key sections:
-  - **Header & Personal Info**
-  - **Experience**
-  - **Education**
-  - **Skills**
-- **ATS-Friendly Templates**: Generates resumes designed to pass Applicant Tracking Systems (ATS) while maintaining a professional design.
-- **Integrated Support**: Includes a "Contact Us" page featuring a chatbot for instant assistance.
-- **Responsive Design**: Optimized for various screen sizes with specific attention to correct A4 scaling on desktop views.
+- Resume creation using structured input
+- Clean and ATS-friendly resume templates
+- Frontend built with HTML, CSS, and JavaScript
+- Backend powered by Python (Flask architecture)
+- Modular and scalable project structure
+- Environment-based configuration support
+
+---
 
 ## 🛠️ Tech Stack
 
-* **Frontend**: HTML5, CSS3, JavaScript
-* **Backend**: Java Spring Boot *(Assumed based on your profile)*
-* **Database**: MongoDB *(Assumed based on your profile)*
-* **Version Control**: Git
+### Frontend
+- HTML5
+- CSS3
+- JavaScript (Vanilla)
+
+### Backend
+- Python
+- Flask (app-based architecture)
+
+### Tools
+- Git & GitHub
+- Virtual Environment (`venv`)
+
+---
 
 ## 📂 Project Structure
 
+resume-maker-clean/
+│
+├── FSD/ # Frontend Static Directory
+
+│ ├── HTML/ # HTML pages
+
+│ ├── CSS/ # Stylesheets
+
+│ ├── JS/ # JavaScript files
+
+│ ├── IMG/ # Images & assets
+
+│ └── templates/ # HTML templates used by Flask
+
+│
+├── Python/ # Backend source code
+
+│ ├── config/ # Configuration files
+
+│ ├── Controller/ # Route controllers
+
+│ ├── services/ # Business logic
+
+│ ├── repo/ # Data access layer
+
+│ ├── DTO/ # Data Transfer Objects
+
+│ ├── utils/ # Utility helpers
+
+│ └── logs/ # Backend logs
+
+│
+├── admin/ # Admin-related modules (if applicable)
+
+├── logs/ # Application logs
+
+│
+├── app.py # Flask app initialization
+
+├── run.py # Application entry point
+
+├── test.py # General testing
+
+├── test_openai.py # OpenAI/API testing file
+
+│
+├── .env # Environment variables
+
+├── requirements.txt # Python dependencies
+
+├── .gitignore
+
+└── README.md
+
+
+---
+
+## 🔧 Setup Instructions
+
+### 1️⃣ Clone the Repository
 ```bash
-resume-maker-/
-├── public/              # Static assets (images, icons)
-├── src/
-│   ├── components/      # Reusable UI components (Header, Form, Preview)
-│   ├── pages/           # Landing, Login, Sign-up, Editor, Templates
-│   ├── services/        # API calls to backend
-│   └── styles/          # CSS/SCSS files (Neon & Glass effects)
-├── README.md
-└── package.json         # Project dependencies
-🔧 Installation & Setup
-Clone the repository
+git clone https://github.com/mihir021/resume-maker-.git
+cd resume-maker-clean
+2️⃣ Create Virtual Environment
+python -m venv venv
+Activate it:
 
-Bash
-git clone [https://github.com/mihir021/resume-maker-.git](https://github.com/mihir021/resume-maker-.git)
-cd resume-maker-
-Install Frontend Dependencies (if using Node/React)
+Windows
 
-Bash
-npm install
-Run the Application
+venv\Scripts\activate
+Linux / macOS
 
-Bash
-npm start
-The app will be available at http://localhost:3000 (or your configured port).
+source venv/bin/activate
+3️⃣ Install Dependencies
+pip install -r requirements.txt
+4️⃣ Run the Application
+python run.py
+The application will start on:
 
-Backend Setup (If applicable)
+http://localhost:5000
+🌐 Frontend Usage
+HTML files are located in FSD/HTML
 
-Ensure your MongoDB instance is running.
+CSS files are in FSD/CSS
 
-Navigate to the backend directory and run the Spring Boot application.
+JavaScript files are in FSD/JS
 
+Templates used by Flask are in FSD/templates
+
+🧪 Testing
+test.py → General backend testing
+
+test_openai.py → API/OpenAI testing (if configured)
+
+🔐 Environment Variables
+Create a .env file in the root directory and define required variables:
+
+FLASK_ENV=development
+SECRET_KEY=your_secret_key
 🤝 Contributing
-Contributions are welcome! If you have suggestions for new templates or UI improvements, please fork the repository and submit a pull request.
+Fork the repository
 
-Fork the Project
+Create a feature branch
 
-Create your Feature Branch (git checkout -b feature/AmazingFeature)
+git checkout -b feature/your-feature
+Commit your changes
 
-Commit your Changes (git commit -m 'Add some AmazingFeature')
-
-Push to the Branch (git push origin feature/AmazingFeature)
-
-Open a Pull Request
+git commit -m "Add new feature"
+Push and open a Pull Request
 
 📄 License
-Distributed under the MIT License. See LICENSE for more information.
-
-📬 Contact
-Project Link: https://github.com/mihir021/resume-maker-
+This project is licensed under the MIT License.
