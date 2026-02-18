@@ -12,7 +12,7 @@ def rank_resumes(resumes, user_email):
             resume_meta["_id"]
         )
 
-        score, _ = calculate_resume_score(full_resume)
+        score, _, _ = calculate_resume_score(full_resume)
 
         resume_meta["score"] = score
         pq.push((score, resume_meta))

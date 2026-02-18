@@ -1,9 +1,40 @@
 from openai import OpenAI
-from ai.prompts import build_resume_prompt
+from ai.prompts import build_resume_prompt, build_role_suggestions_prompt
 import os
 import json
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+def suggest_from_role(role: str) -> dict:
+    """Generate title, summary, skills, job_description from target role only."""
+    if not role or not role.strip():
+        return {
+            "title": "",
+            "summary": "",
+            "skills": [],
+            "job_description": ""
+        }
+    prompt = build_role_suggestions_prompt(role.strip())
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4
+    )
+    content = response.choices[0].message.content.strip()
+    if content.startswith("```"):
+        content = content.replace("```json", "").replace("```", "").strip()
+    try:
+        data = json.loads(content)
+        return {
+            "title": data.get("title", ""),
+            "summary": data.get("summary", ""),
+            "skills": data.get("skills", []) if isinstance(data.get("skills"), list) else [],
+            "job_description": data.get("job_description", "")
+        }
+    except json.JSONDecodeError:
+        return {"title": role.strip(), "summary": "", "skills": [], "job_description": ""}
+
 
 def generate_ai_resume(user_data):
     prompt = build_resume_prompt(user_data)

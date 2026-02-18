@@ -13,6 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import spacy
 from openai import OpenAI
 from utils.logger import setup_logger
+from services.resume_score_service import _validate_resume_data
 
 # Initialize logger
 ats_logger = setup_logger(
@@ -100,6 +101,13 @@ class ATSCheckerService:
             formatting_issues = []
             if not resume_data.get("step1", {}).get("summary"):
                 formatting_issues.append("No summary section found")
+            # Data quality: flag invalid/placeholder values (e.g. 11111 in name)
+            try:
+                data_warnings = _validate_resume_data(resume_data)
+                for w in data_warnings:
+                    formatting_issues.append(w)
+            except Exception:
+                pass
             
             # Calculate structure score
             structure_score = self._calculate_structure_score(sections)

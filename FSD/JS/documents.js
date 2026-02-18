@@ -619,24 +619,34 @@ document.addEventListener("click", async (e) => {
   const res = await fetch(`/api/resumes/score/${resumeId}`);
   const data = await res.json();
 
-  document.getElementById("finalScore").innerText =
-    `${data.score} / 100`;
+  const finalScoreEl = document.getElementById("finalScore");
+  if (finalScoreEl) finalScoreEl.innerText = `${data.score} / 100`;
 
   const list = document.getElementById("scoreList");
-  list.innerHTML = "";
-
-  for (let key in data.breakdown) {
-    list.innerHTML += `
-      <li class="list-group-item d-flex justify-content-between">
-        <span>${key}</span>
-        <strong>${data.breakdown[key]}</strong>
-      </li>
-    `;
+  if (list) {
+    list.innerHTML = "";
+    for (let key in data.breakdown) {
+      list.innerHTML += `
+        <li class="list-group-item d-flex justify-content-between bg-transparent border-secondary text-white">
+          <span>${key}</span>
+          <strong>${data.breakdown[key]}</strong>
+        </li>
+      `;
+    }
   }
 
-  new bootstrap.Modal(
-    document.getElementById("resumeScoreModal")
-  ).show();
+  const warningsEl = document.getElementById("scoreWarnings");
+  if (warningsEl && data.warnings && data.warnings.length > 0) {
+    warningsEl.style.display = "block";
+    warningsEl.innerHTML = "<strong>Please fix:</strong><ul class=\"mb-0 mt-1\">" +
+      data.warnings.map(function (w) { return "<li>" + w + "</li>"; }).join("") + "</ul>";
+  } else if (warningsEl) {
+    warningsEl.style.display = "none";
+    warningsEl.innerHTML = "";
+  }
+
+  const modalEl = document.getElementById("resumeScoreModal");
+  if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
 });
 /* ================= CLOSE PREVIEW BUTTON ================= */
 document.addEventListener("click", (e) => {
@@ -838,25 +848,84 @@ document.addEventListener("DOMContentLoaded", () => {
 
   aiBtn.addEventListener("click", async () => {
     try {
-      const res = await fetch("/api/profile/status", { credentials: "include" });
-      const status = await res.json();
-
-      document.getElementById("skillsField")
-        ?.classList.toggle("d-none", status.skills);
-
-      document.getElementById("projectsField")
-        ?.classList.toggle("d-none", status.projects);
-
-      // Auto-populate form with sample data
-      autoPopulateAIForm();
-
-      new bootstrap.Modal(aiModal).show();
+      showAIStep1();
+      bootstrap.Modal.getOrCreateInstance(aiModal).show();
     } catch (err) {
       console.error("AI modal error:", err);
       alert("Unable to open AI resume builder");
     }
   });
+
+  document.getElementById("aiContinueBtn")?.addEventListener("click", function () { proceedFromRoleToForm(); });
+  document.getElementById("aiBackBtn")?.addEventListener("click", function () { showAIStep1(); });
 });
+
+function showAIStep1() {
+  document.getElementById("aiStep1").style.display = "block";
+  document.getElementById("aiStep2").style.display = "none";
+  document.getElementById("aiStep1Footer").style.display = "inline";
+  document.getElementById("aiStep2Footer").style.display = "none";
+  document.getElementById("aiTargetRole").value = "";
+
+  // Clear personal info so "Back" doesn't keep old values
+  const idsToClear = ["aiName", "aiEmail", "aiPhone", "aiLocation"];
+  idsToClear.forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  document.getElementById("aiTargetRole").focus();
+}
+
+function showAIStep2() {
+  document.getElementById("aiStep1").style.display = "none";
+  document.getElementById("aiStep2").style.display = "block";
+  document.getElementById("aiStep1Footer").style.display = "none";
+  document.getElementById("aiStep2Footer").style.display = "inline";
+}
+
+async function proceedFromRoleToForm() {
+  const roleInput = document.getElementById("aiTargetRole");
+  const role = (roleInput && roleInput.value.trim()) || "";
+  if (!role) {
+    alert("Please enter the role you want (e.g. Java Developer, Data Scientist).");
+    return;
+  }
+  const btn = document.getElementById("aiContinueBtn");
+  const originalText = btn ? btn.innerHTML : "";
+  if (btn) { btn.disabled = true; btn.innerHTML = "<span class=\"spinner-border spinner-border-sm me-2\"></span>Generating..."; }
+  try {
+    const res = await fetch("/ai/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ role: role })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to get suggestions");
+
+    document.getElementById("aiTitle").value = data.title || role;
+    document.getElementById("aiSummary").value = data.summary || "";
+    document.getElementById("aiJD").value = data.job_description || "";
+    const skillsEl = document.getElementById("aiSkills");
+    if (skillsEl) skillsEl.value = Array.isArray(data.skills) ? data.skills.join("\n") : (data.skills || "");
+
+    document.getElementById("aiExperience").value = "fresher";
+    const expSection = document.getElementById("aiExperienceSection");
+    if (expSection) expSection.classList.add("d-none");
+    const expContainer = document.getElementById("experienceContainer");
+    if (expContainer) expContainer.innerHTML = "";
+
+    showAIStep2();
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Could not generate suggestions. You can still fill the form manually.");
+    document.getElementById("aiTitle").value = role;
+    showAIStep2();
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+  }
+}
 
 async function submitAIResume() {
   const role = document.getElementById("aiTitle").value.trim();
@@ -972,7 +1041,19 @@ function injectFinalData(data) {
   
   if (!data.step1) {
     console.warn("No step1 data found in resume data:", data);
-    // Try to continue with other steps if step1 is missing
+  }
+
+  // Scope lookups to the preview container so we always target the loaded template
+  const container = document.getElementById("finalResumePreview");
+  function getEl(id) {
+    return container ? container.querySelector("#" + id) : document.getElementById(id);
+  }
+  function setTextLocal(id, value) {
+    const el = getEl(id);
+    if (el) {
+      el.textContent = value != null ? String(value) : "";
+      if ((value != null ? String(value) : "").trim()) el.style.display = "";
+    }
   }
 
   console.log("=== INJECTING FINAL DATA ===");
@@ -980,68 +1061,41 @@ function injectFinalData(data) {
   console.log("step2:", JSON.stringify(data.step2, null, 2));
   console.log("step3:", JSON.stringify(data.step3, null, 2));
   console.log("step4:", JSON.stringify(data.step4, null, 2));
-  console.log("customSections:", JSON.stringify(data.customSections, null, 2));
-  
-  // Debug: Check if elements exist
-  console.log("Checking elements exist:");
-  console.log("previewName:", document.getElementById("previewName"));
-  console.log("previewTitle:", document.getElementById("previewTitle"));
-  console.log("previewEmail:", document.getElementById("previewEmail"));
-  console.log("previewPhone:", document.getElementById("previewPhone"));
-  console.log("previewLocation:", document.getElementById("previewLocation"));
-  console.log("previewSkills:", document.getElementById("previewSkills"));
-  console.log("pLanguages:", document.getElementById("pLanguages"));
-  console.log("pCerts:", document.getElementById("pCerts"));
 
   /* ========== BASIC INFO ========== */
   if (data.step1) {
-    const name = data.step1.name || "";
-    const title = data.step1.title || "";
-    const email = data.step1.email || "";
-    const phone = data.step1.phone || "";
-    const location = data.step1.location || "";
+    const name = (data.step1.name || "").trim();
+    const title = (data.step1.title || "").trim();
+    const email = (data.step1.email || "").trim();
+    const phone = (data.step1.phone || "").trim();
+    const location = (data.step1.location || "").trim();
     
-    console.log("Setting basic info:", { name, title, email, phone, location });
-    
-    const nameEl = document.getElementById("previewName");
-    const titleEl = document.getElementById("previewTitle");
-    const emailEl = document.getElementById("previewEmail");
-    const phoneEl = document.getElementById("previewPhone");
-    const locationEl = document.getElementById("previewLocation");
+    const nameEl = getEl("previewName");
+    const titleEl = getEl("previewTitle");
+    const emailEl = getEl("previewEmail");
+    const phoneEl = getEl("previewPhone");
+    const locationEl = getEl("previewLocation");
     
     if (nameEl) {
       nameEl.textContent = name;
       nameEl.style.display = name ? "" : "none";
-      console.log("Set previewName to:", name, "Element:", nameEl);
-    } else {
-      console.error("previewName element not found!");
     }
-    
     if (titleEl) {
       titleEl.textContent = title;
       titleEl.style.display = title ? "" : "none";
-      console.log("Set previewTitle to:", title);
     }
-    
     if (emailEl) {
       emailEl.textContent = email;
       emailEl.style.display = email ? "" : "none";
-      console.log("Set previewEmail to:", email);
     }
-    
     if (phoneEl) {
       phoneEl.textContent = phone;
       phoneEl.style.display = phone ? "" : "none";
-      console.log("Set previewPhone to:", phone);
     }
-    
     if (locationEl) {
       locationEl.textContent = location;
       locationEl.style.display = location ? "" : "none";
-      console.log("Set previewLocation to:", location);
     }
-  } else {
-    console.warn("data.step1 is missing or empty");
   }
 
   /* ========== SKILLS ========== */
@@ -1049,12 +1103,11 @@ function injectFinalData(data) {
   if (Array.isArray(data.step4)) {
     skills = data.step4.map(s => typeof s === "string" ? s : s?.name).filter(Boolean);
   } else if (typeof data.step4 === "string" && data.step4.trim()) {
-    // Handle string format (newline-separated) as fallback
     skills = data.step4.split("\n").map(s => s.trim()).filter(Boolean);
   }
 
-  const skillsBox = document.getElementById("previewSkills");
-  const skillsSection = document.getElementById("skillsSection");
+  const skillsBox = getEl("previewSkills");
+  const skillsSection = getEl("skillsSection");
   if (skillsBox) {
     console.log("Setting skills:", skills);
     if (skills.length) {
@@ -1079,25 +1132,21 @@ function injectFinalData(data) {
   }
 
   /* ========== SUMMARY ========== */
-  const summaryEl = document.getElementById("previewSummary");
+  const summaryEl = getEl("previewSummary");
   if (summaryEl) {
-    const summary = data.step1?.summary || "";
-    console.log("Setting summary:", summary);
+    const summary = (data.step1?.summary || "").trim();
     if (summary) {
       summaryEl.innerHTML = highlightKeywords(summary, skills);
       summaryEl.style.display = "";
-      console.log("Summary set, innerHTML:", summaryEl.innerHTML);
       revealSection(summaryEl);
     } else {
       summaryEl.innerHTML = "";
       summaryEl.style.display = "none";
     }
-  } else {
-    console.error("previewSummary element not found!");
   }
 
   /* ========== LANGUAGES ========== */
-  const langList = document.getElementById("pLanguages");
+  const langList = getEl("pLanguages");
   if (langList) {
     // Handle both string (newline-separated) and array formats
     let languages = [];
@@ -1120,7 +1169,7 @@ function injectFinalData(data) {
   }
 
   /* ========== CERTIFICATIONS ========== */
-  const certList = document.getElementById("pCerts");
+  const certList = getEl("pCerts");
   if (certList) {
     // Handle both string (newline-separated) and array formats
     // Check for both 'certificates' and 'certs' keys
@@ -1147,49 +1196,43 @@ function injectFinalData(data) {
 
   /* ========== EDUCATION ========== */
   if (data.step2) {
-    // Map step2 fields (school, degree, field, month, etc.) to template IDs
-    const degree = data.step2.degree || "";
-    const field = data.step2.field || "";
-    const school = data.step2.school || data.step2.institution || "";
-    const location = data.step2.location || "";
+    const degree = (data.step2.degree || "").trim();
+    const field = (data.step2.field || "").trim();
+    const school = (data.step2.school || data.step2.institution || "").trim();
+    const location = (data.step2.location || "").trim();
     
-    setText("previewDegree", degree);
-    setText("previewField", field);
-    setText("previewEduInstitute", school);
-    setText("previewEduLocation", location);
+    setTextLocal("previewDegree", degree);
+    setTextLocal("previewField", field);
+    setTextLocal("previewEduInstitute", school);
+    setTextLocal("previewEduLocation", location);
     
-    // Format graduation date
     if (data.step2.month) {
       const dateText = data.step2.current
         ? `Expected ${formatMonth(data.step2.month)}`
         : formatMonth(data.step2.month);
-      setText("previewGraduation", dateText);
+      setTextLocal("previewGraduation", dateText);
     } else if (data.step2.year) {
-      setText("previewGraduation", data.step2.year);
+      setTextLocal("previewGraduation", (data.step2.year || "").toString().trim());
     } else {
-      // Clear graduation date if neither month nor year exists
-      setText("previewGraduation", "");
+      setTextLocal("previewGraduation", "");
     }
 
-    // Handle education details
-    const eduDetailsEl = document.getElementById("previewEduDetails");
+    const eduDetailsEl = getEl("previewEduDetails");
     if (eduDetailsEl && Array.isArray(data.step2.details) && data.step2.details.length) {
       eduDetailsEl.innerHTML = data.step2.details.map(d => `<li>${d}</li>`).join("");
       eduDetailsEl.style.display = "";
     }
 
-    const edu = document.getElementById("educationSection");
+    const edu = getEl("educationSection");
     if (edu) {
       if (degree || field || school) {
         edu.classList.remove("hide-section");
         edu.classList.add("show");
         edu.style.display = "";
-        
-        // Ensure all education fields are visible
-        if (degree) document.getElementById("previewDegree")?.style.setProperty("display", "", "important");
-        if (field) document.getElementById("previewField")?.style.setProperty("display", "", "important");
-        if (school) document.getElementById("previewEduInstitute")?.style.setProperty("display", "", "important");
-        if (location) document.getElementById("previewEduLocation")?.style.setProperty("display", "", "important");
+        if (degree) getEl("previewDegree")?.style.setProperty("display", "", "important");
+        if (field) getEl("previewField")?.style.setProperty("display", "", "important");
+        if (school) getEl("previewEduInstitute")?.style.setProperty("display", "", "important");
+        if (location) getEl("previewEduLocation")?.style.setProperty("display", "", "important");
       } else {
         edu.classList.add("hide-section");
         edu.style.display = "none";
@@ -1199,8 +1242,8 @@ function injectFinalData(data) {
 
   /* ========== EXPERIENCE ========== */
   if (Array.isArray(data.step3) && data.step3.length) {
-    const sec = document.getElementById("previewExperienceSection");
-    const list = document.getElementById("previewExperienceList");
+    const sec = getEl("previewExperienceSection");
+    const list = getEl("previewExperienceList");
 
     if (sec && list) {
       list.innerHTML = data.step3.map(exp => {
@@ -1233,8 +1276,7 @@ function injectFinalData(data) {
       console.log("Experience section shown with", data.step3.length, "items");
     }
   } else {
-    // Hide experience section if no data
-    const sec = document.getElementById("previewExperienceSection");
+    const sec = getEl("previewExperienceSection");
     if (sec) {
       sec.classList.add("hide-section");
       sec.style.display = "none";
@@ -1243,27 +1285,23 @@ function injectFinalData(data) {
 
   /* ========== CUSTOM SECTIONS ========== */
   const customSections = data.customSections || [];
-  console.log("Custom sections found:", customSections.length, customSections);
   
-  // Remove existing custom sections from preview
-  document.querySelectorAll(".custom-section-final").forEach(el => el.remove());
+  const root = container || document;
+  root.querySelectorAll(".custom-section-final").forEach(el => el.remove());
   
   if (customSections.length) {
-    console.log("Processing custom sections for template...");
-    console.log("Custom sections data:", customSections);
-    
-    // Find the right panel (main content area) - prioritize content-column for blue-corporate
-    let rightPanel = document.querySelector(".content-column");
+    let rightPanel = container ? container.querySelector(".content-column") : document.querySelector(".content-column");
     if (!rightPanel) {
-      rightPanel = document.querySelector(".right-panel");
+      rightPanel = container ? container.querySelector(".right-panel") : document.querySelector(".right-panel");
     }
     if (!rightPanel) {
-      rightPanel = document.querySelector("main");
+      rightPanel = container ? container.querySelector("main") : document.querySelector("main");
     }
     if (!rightPanel) {
       // Fallback: find main content area by looking for sections
-      rightPanel = document.querySelector("#previewExperienceSection")?.parentElement || 
-                   document.querySelector("#educationSection")?.parentElement;
+      rightPanel =
+        (container ? container.querySelector("#previewExperienceSection") : document.querySelector("#previewExperienceSection"))?.parentElement ||
+        (container ? container.querySelector("#educationSection") : document.querySelector("#educationSection"))?.parentElement;
     }
     
     console.log("Right panel found:", rightPanel, "Class:", rightPanel?.className, "Tag:", rightPanel?.tagName);

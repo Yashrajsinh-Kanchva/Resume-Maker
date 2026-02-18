@@ -4,6 +4,12 @@ ALLOWED_KEYWORDS = [
     "template",
     "download",
     "edit",
+    "create",
+    "make",
+    "build",
+    "ats",
+    "score",
+    "ai",
     "pricing",
     "price",
     "subscription",
@@ -18,7 +24,9 @@ ALLOWED_KEYWORDS = [
     "support",
     "help",
     "faq",
-    "cancel"
+    "cancel",
+    "design",
+    "document",
 ]
 
 INTENTS = [

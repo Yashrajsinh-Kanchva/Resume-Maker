@@ -360,6 +360,19 @@ textarea::placeholder {
     background: #2a2a2a;
 }
 
+/* Resume preview content: force dark text on white template so name/contact are visible */
+#pdfWrapper .resume,
+#finalResumePreview .resume {
+    color: #222 !important;
+}
+#finalResumePreview .split-header h1,
+#finalResumePreview .split-header p,
+#finalResumePreview .contact-block p,
+#finalResumePreview .name-block h1,
+#finalResumePreview .name-block p {
+    color: #1a1a1a !important;
+}
+
 /* The Download Bar */
 .download-bar {
     background: linear-gradient(135deg, #1a2332 0%, #2f3b4c 100%);

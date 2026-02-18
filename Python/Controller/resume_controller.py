@@ -59,16 +59,14 @@ def get_resume_score(resume_id):
     if not resume:
         return jsonify({"error": "Resume not found"}), 404
 
-    if not resume:
-        return jsonify({"error": "Resume not found"}), 404
-
-    score, breakdown = calculate_resume_score(resume)
+    score, breakdown, warnings = calculate_resume_score(resume)
 
     open_view("score")  # 🔥 STACK USED HERE
 
     return jsonify({
         "score": score,
-        "breakdown": breakdown
+        "breakdown": breakdown,
+        "warnings": warnings or []
     })
 
 
