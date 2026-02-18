@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 from config.db import get_feedback_collection
 
 feedback_bp = Blueprint("feedback_bp", __name__)
@@ -21,7 +21,7 @@ def save_feedback():
         "email": email,
         "rating": int(rating),
         "feedback": message,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     }
 
     collection = get_feedback_collection()

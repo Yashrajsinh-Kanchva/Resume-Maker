@@ -10,26 +10,18 @@ document.querySelectorAll(".faq-question").forEach(btn => {
 /* ===============================
    AUTO LOAD USER DATA
 ================================ */
-async function loadUserInfo() {
-  try {
-    const res = await fetch("/api/users/me", {
-      credentials: "include"
-    });
-
-    if (!res.ok) return;
-
-    const data = await res.json();
-
+try {
+  const userRes = await fetch("/api/users/me", { credentials: "include" });
+  if (userRes.ok) {
+    const data = await userRes.json();
     if (data.authenticated && data.user) {
       document.getElementById("fullName").value = data.user.name || "";
       document.getElementById("email").value = data.user.email || "";
     }
-  } catch (err) {
-    console.error("User fetch failed", err);
   }
+} catch (err) {
+  console.error("User fetch failed", err);
 }
-
-loadUserInfo();
 
 /* ===============================
    CONTACT FORM SUBMIT

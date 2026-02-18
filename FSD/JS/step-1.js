@@ -90,13 +90,11 @@ const selectedTemplate =
 })();
 
 /* ================= LOAD TEMPLATE HTML ================= */
-fetch(TEMPLATES[selectedTemplate].html)
-  .then(res => res.text())
-  .then(html => {
-    $("resumePreview").innerHTML = html;
-    restore();
-    bindLivePreview();
-  });
+const templateRes = await fetch(TEMPLATES[selectedTemplate].html);
+const html = await templateRes.text();
+$("resumePreview").innerHTML = html;
+restore();
+bindLivePreview();
 
 /* ================= STORAGE ================= */
 function save() {

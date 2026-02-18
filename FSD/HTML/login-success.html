@@ -12,7 +12,7 @@
 
     <script>
         setTimeout(() => {
-            window.location.href = "/dashboard";
+            globalThis.location.href = "/dashboard";
         }, 2000);
     </script>
 </head>
@@ -29,9 +29,9 @@
         <h2 class="fw-bold text-white mb-2">Login Successful</h2>
         <p class="text-light-gray mb-4">Redirecting to dashboard...</p>
 
-        <div class="spinner-border text-green" role="status">
+        <output class="spinner-border text-green" aria-live="polite" aria-busy="true">
             <span class="visually-hidden">Loading...</span>
-        </div>
+        </output>
 
     </div>
 

@@ -5,5 +5,5 @@ function openResumeScore(id) {
     body: JSON.stringify({ view: "score" })
   });
 
-  window.location.href = `/resume-score.html?id=${id}`;
+  globalThis.location.href = `/resume-score.html?id=${id}`;
 }

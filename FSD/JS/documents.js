@@ -85,47 +85,51 @@ const TEMPLATES = {
   }
 };
 
+function getRankBadge(rank) {
+  if (rank === 1) return "🏆";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return "🔹";
+}
+
 /* ================== LOAD RESUMES ================== */
-fetch("/api/resumes", { credentials: "include" })
-  .then(res => res.json())
-  .then(resumes => {
-    const container = document.getElementById("resumeList");
+const res = await fetch("/api/resumes", { credentials: "include" });
+const resumes = await res.json();
+const container = document.getElementById("resumeList");
 
-    if (!resumes.length) {
-      container.innerHTML = "<p>No resume created</p>";
-      return;
-    }
+if (resumes.length) {
+  container.innerHTML = resumes.map(r => `
+    <div class="resume-card fade-card" data-id="${r._id}"
+         onclick="openResumePreview('${r._id}')">
 
-    container.innerHTML = resumes.map(r => `
-      <div class="resume-card fade-card" data-id="${r._id}"
-           onclick="openResumePreview('${r._id}')">
+      <!-- ❌ DELETE BUTTON -->
+      <button class="delete-resume-btn"
+              onclick="deleteResume(event, '${r._id}')">✕</button>
 
-        <!-- ❌ DELETE BUTTON -->
-        <button class="delete-resume-btn"
-                onclick="deleteResume(event, '${r._id}')">✕</button>
+      <!-- 📥 DOWNLOAD BUTTON -->
+      <button class="download-resume-btn"
+              onclick="downloadResumeDirect(event, '${r._id}')"
+              title="Download Resume">
+        <i class="bi bi-download"></i>
+      </button>
 
-        <!-- 📥 DOWNLOAD BUTTON -->
-        <button class="download-resume-btn"
-                onclick="downloadResumeDirect(event, '${r._id}')"
-                title="Download Resume">
-          <i class="bi bi-download"></i>
-        </button>
-
-        <div class="rank-badge">
-          ${r.rank === 1 ? "🏆" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : "🔹"}
-          Rank ${r.rank}
-        </div>
-
-        <h3>${r.title}</h3>
-        <p>Score: <strong>${r.score} / 100</strong></p>
-        <p>Template: ${r.template}</p>
-        ${r.created_at ? `<p class="text-muted small mb-0"><i class="bi bi-calendar3 me-1"></i>${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
+      <div class="rank-badge">
+        ${getRankBadge(r.rank)}
+        Rank ${r.rank}
       </div>
-    `).join("");
 
-    container.querySelectorAll(".fade-card")
-      .forEach(card => observer.observe(card));
-  });
+      <h3>${r.title}</h3>
+      <p>Score: <strong>${r.score} / 100</strong></p>
+      <p>Template: ${r.template}</p>
+      ${r.created_at ? `<p class="text-muted small mb-0"><i class="bi bi-calendar3 me-1"></i>${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
+    </div>
+  `).join("");
+
+  container.querySelectorAll(".fade-card")
+    .forEach(card => observer.observe(card));
+} else {
+  container.innerHTML = "<p>No resume created</p>";
+}
 
 /* ================= OPEN PREVIEW ================= */
 function openResumePreview(resumeId) {
@@ -139,7 +143,7 @@ function openResumePreview(resumeId) {
       console.log("Received resume object:", resume);
       console.log("Resume data structure:", JSON.stringify(resume, null, 2));
       
-      if (!resume || !resume.data) {
+      if (!resume?.data) {
         console.error("Resume or resume.data is missing!", resume);
         alert("Error: Resume data not found. Please try again.");
         return;
@@ -214,58 +218,60 @@ function loadFinalTemplate(resume) {
       
       console.log("Loading template HTML into container");
       previewContainer.innerHTML = html;
-      
-      // Use requestAnimationFrame to ensure DOM is fully rendered
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          console.log("=== INJECTING DATA ===");
-          console.log("Full resume object:", resume);
-          console.log("Resume.data:", resume.data);
-          console.log("Resume.data.step1:", resume.data?.step1);
-          console.log("Resume.data.step2:", resume.data?.step2);
-          console.log("Resume.data.step3:", resume.data?.step3);
-          console.log("Resume.data.step4:", resume.data?.step4);
-          console.log("Resume.data.customSections:", resume.data?.customSections);
-          
-          if (resume && resume.data) {
-            // Verify elements exist before injecting
-            console.log("Verifying template elements exist:");
-            console.log("previewName exists:", !!document.getElementById("previewName"));
-            console.log("previewTitle exists:", !!document.getElementById("previewTitle"));
-            console.log("previewEmail exists:", !!document.getElementById("previewEmail"));
-            console.log("previewPhone exists:", !!document.getElementById("previewPhone"));
-            console.log("previewLocation exists:", !!document.getElementById("previewLocation"));
-            console.log("previewSkills exists:", !!document.getElementById("previewSkills"));
-            
-            injectFinalData(resume.data);
-            
-            // Verify after injection
-            setTimeout(() => {
-              console.log("=== AFTER INJECTION ===");
-              console.log("previewName content:", document.getElementById("previewName")?.textContent);
-              console.log("previewTitle content:", document.getElementById("previewTitle")?.textContent);
-              console.log("previewEmail content:", document.getElementById("previewEmail")?.textContent);
-              console.log("previewPhone content:", document.getElementById("previewPhone")?.textContent);
-              console.log("previewSkills innerHTML:", document.getElementById("previewSkills")?.innerHTML);
-            }, 100);
-          } else {
-            console.error("No resume data found in response");
-            alert("Error: Resume data is missing. Please try creating the resume again.");
-          }
-        }, 100); // Increased timeout to ensure DOM is ready
-      });
+      afterRenderAndDelay(() => injectResumeDataAndVerify(resume));
     })
     .catch(err => {
       console.error("Error loading template:", err);
       alert("Error loading template: " + err.message);
     });
 }
+
+function afterRenderAndDelay(fn, delay = 100) {
+  requestAnimationFrame(() => setTimeout(fn, delay));
+}
+
+function logPreviewContent() {
+  console.log("=== AFTER INJECTION ===");
+  console.log("previewName content:", document.getElementById("previewName")?.textContent);
+  console.log("previewTitle content:", document.getElementById("previewTitle")?.textContent);
+  console.log("previewEmail content:", document.getElementById("previewEmail")?.textContent);
+  console.log("previewPhone content:", document.getElementById("previewPhone")?.textContent);
+  console.log("previewSkills innerHTML:", document.getElementById("previewSkills")?.innerHTML);
+}
+
+function injectResumeDataAndVerify(resume) {
+  console.log("=== INJECTING DATA ===");
+  console.log("Full resume object:", resume);
+  console.log("Resume.data:", resume.data);
+  console.log("Resume.data.step1:", resume.data?.step1);
+  console.log("Resume.data.step2:", resume.data?.step2);
+  console.log("Resume.data.step3:", resume.data?.step3);
+  console.log("Resume.data.step4:", resume.data?.step4);
+  console.log("Resume.data.customSections:", resume.data?.customSections);
+
+  if (resume?.data) {
+    console.log("Verifying template elements exist:");
+    console.log("previewName exists:", !!document.getElementById("previewName"));
+    console.log("previewTitle exists:", !!document.getElementById("previewTitle"));
+    console.log("previewEmail exists:", !!document.getElementById("previewEmail"));
+    console.log("previewPhone exists:", !!document.getElementById("previewPhone"));
+    console.log("previewLocation exists:", !!document.getElementById("previewLocation"));
+    console.log("previewSkills exists:", !!document.getElementById("previewSkills"));
+
+    injectFinalData(resume.data);
+    setTimeout(logPreviewContent, 100);
+  } else {
+    console.error("No resume data found in response");
+    alert("Error: Resume data is missing. Please try creating the resume again.");
+  }
+}
+
 /* ================= HELPERS ================= */
 function setText(id, value) {
   const el = document.getElementById(id);
   if (el) {
     // Set text even if value is empty string, null, or undefined (to clear fields)
-    const textValue = value != null ? String(value) : "";
+    const textValue = value == null ? "" : String(value);
     el.textContent = textValue;
     
     // Ensure element is visible if it has content
@@ -334,6 +340,136 @@ function downloadResumePDF() {
 }
 
 /* ================= DOWNLOAD RESUME DIRECTLY FROM CARD ================= */
+function onTemplateHtmlLoaded(html, resume, tempContainer, cleanup) {
+  tempContainer.innerHTML = html;
+  afterRenderAndDelay(() => prepareTempContainerAndInject(resume, tempContainer, cleanup), 200);
+}
+
+function prepareTempContainerAndInject(resume, tempContainer, cleanup) {
+  const originalFinalPreview = document.getElementById("finalResumePreview");
+  if (originalFinalPreview?.id === "finalResumePreview") {
+    originalFinalPreview.id = "originalFinalResumePreviewBackup";
+  }
+
+  const finalPreviewWrapper = document.createElement("div");
+  finalPreviewWrapper.id = "finalResumePreview";
+
+  const resumeContent = tempContainer.querySelector(".resume");
+  if (resumeContent) {
+    finalPreviewWrapper.appendChild(resumeContent);
+  } else {
+    Array.from(tempContainer.children).forEach(child => {
+      finalPreviewWrapper.appendChild(child);
+    });
+  }
+
+  tempContainer.appendChild(finalPreviewWrapper);
+  injectFinalData(resume.data);
+  setTimeout(() => generatePdfFromResumeElement(tempContainer, finalPreviewWrapper, resume, cleanup), 1000);
+}
+
+function generatePdfFromResumeElement(tempContainer, finalPreviewWrapper, resume, cleanup) {
+  const resumeElement = tempContainer.querySelector(".resume") ||
+    finalPreviewWrapper.querySelector(".resume") ||
+    finalPreviewWrapper.firstElementChild ||
+    tempContainer.firstElementChild;
+
+  if (!resumeElement?.innerHTML?.trim()) {
+    console.error("Resume element not found or empty in temp container");
+    console.log("Temp container HTML:", tempContainer.innerHTML.substring(0, 500));
+    console.log("FinalPreviewWrapper HTML:", finalPreviewWrapper.innerHTML.substring(0, 500));
+    alert("Error: Could not generate PDF. Content is empty.");
+    cleanup();
+    return;
+  }
+
+  console.log("Generating PDF from element:", resumeElement);
+  console.log("Element has content:", resumeElement.innerHTML.length > 0);
+  console.log("Element classes:", resumeElement.className);
+
+  const resumeWidth = 800;
+  resumeElement.style.width = resumeWidth + "px";
+  resumeElement.style.maxWidth = resumeWidth + "px";
+  resumeElement.style.boxSizing = "border-box";
+
+  const style = document.createElement("style");
+  style.id = "pdf-page-break-style";
+  style.textContent = `
+    .resume, .resume * {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    section, .main-section, .content-card, .card-content {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const forcedHeight = resumeElement.offsetHeight; // Force layout recalculation
+  const actualHeight = Math.max(resumeElement.scrollHeight, forcedHeight);
+  const a4HeightPx = 1123;
+  const a4WidthPx = 794;
+  const heightScale = actualHeight > a4HeightPx ? a4HeightPx / actualHeight : 1;
+  const widthScale = resumeWidth > a4WidthPx ? a4WidthPx / resumeWidth : 1;
+  const finalScale = Math.min(heightScale, widthScale, 1);
+
+  console.log("Resume element dimensions:", {
+    width: resumeElement.offsetWidth,
+    height: actualHeight,
+    scrollHeight: resumeElement.scrollHeight,
+    a4Height: a4HeightPx,
+    heightScale,
+    widthScale,
+    finalScale
+  });
+
+  html2pdf()
+    .set({
+      margin: [0, 0, 0, 0],
+      filename: `${(resume.title || "resume").replaceAll(/[^a-z0-9]/gi, "_")}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: {
+        scale: 2 * finalScale,
+        useCORS: true,
+        scrollY: 0,
+        logging: false,
+        windowWidth: resumeWidth,
+        width: resumeWidth,
+        height: actualHeight,
+        allowTaint: false,
+        backgroundColor: "#ffffff",
+        x: 0,
+        y: 0,
+        removeContainer: true
+      },
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+        compress: true
+      },
+      pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+    })
+    .from(resumeElement)
+    .save()
+    .then(() => {
+      const pdfStyle = document.getElementById("pdf-page-break-style");
+      if (pdfStyle) {
+        pdfStyle.remove();
+      }
+    })
+    .then(() => {
+      console.log("✅ Resume downloaded successfully");
+      cleanup();
+    })
+    .catch(err => {
+      console.error("Error generating PDF:", err);
+      alert("Error generating PDF: " + err.message);
+      cleanup();
+    });
+}
+
 function downloadResumeDirect(event, resumeId) {
   // Prevent the card click event from firing
   event.stopPropagation();
@@ -350,7 +486,7 @@ function downloadResumeDirect(event, resumeId) {
   fetch(`/api/resumes/${resumeId}`, { credentials: "include" })
     .then(res => res.json())
     .then(resume => {
-      if (!resume || !resume.data) {
+      if (!resume?.data) {
         alert("Error: Resume data not found.");
         btn.innerHTML = originalHTML;
         btn.disabled = false;
@@ -392,166 +528,7 @@ function downloadResumeDirect(event, resumeId) {
         // Load HTML template
         fetch(tpl.html)
           .then(res => res.text())
-          .then(html => {
-            tempContainer.innerHTML = html;
-            
-            // Wait for DOM to be ready and CSS to apply
-            requestAnimationFrame(() => {
-              setTimeout(() => {
-                // Store reference to original finalResumePreview if it exists
-                const originalFinalPreview = document.getElementById("finalResumePreview");
-                let wasSwapped = false;
-                
-                // Temporarily swap the container so injectFinalData works
-                if (originalFinalPreview && originalFinalPreview.id === "finalResumePreview") {
-                  originalFinalPreview.id = "originalFinalResumePreviewBackup";
-                  wasSwapped = true;
-                }
-                
-                // Create a wrapper that injectFinalData expects
-                const finalPreviewWrapper = document.createElement("div");
-                finalPreviewWrapper.id = "finalResumePreview";
-                
-                // Move the resume content into the wrapper
-                const resumeContent = tempContainer.querySelector(".resume");
-                if (resumeContent) {
-                  finalPreviewWrapper.appendChild(resumeContent);
-                } else {
-                  // If no .resume class, move all direct children
-                  Array.from(tempContainer.children).forEach(child => {
-                    finalPreviewWrapper.appendChild(child);
-                  });
-                }
-                
-                tempContainer.appendChild(finalPreviewWrapper);
-                
-                // Inject data into the temporary container
-                injectFinalData(resume.data);
-                
-                // Wait for rendering, fonts, and images to load
-                setTimeout(() => {
-                  // Find the actual resume element to convert
-                  const resumeElement = tempContainer.querySelector(".resume") || 
-                                       finalPreviewWrapper.querySelector(".resume") ||
-                                       finalPreviewWrapper.firstElementChild ||
-                                       tempContainer.firstElementChild;
-                  
-                  if (!resumeElement || !resumeElement.innerHTML || resumeElement.innerHTML.trim().length === 0) {
-                    console.error("Resume element not found or empty in temp container");
-                    console.log("Temp container HTML:", tempContainer.innerHTML.substring(0, 500));
-                    console.log("FinalPreviewWrapper HTML:", finalPreviewWrapper.innerHTML.substring(0, 500));
-                    alert("Error: Could not generate PDF. Content is empty.");
-                    cleanup();
-                    return;
-                  }
-                  
-                  console.log("Generating PDF from element:", resumeElement);
-                  console.log("Element has content:", resumeElement.innerHTML.length > 0);
-                  console.log("Element classes:", resumeElement.className);
-                  
-                  // Ensure resume element has proper width and is not cut off
-                  const resumeWidth = 800;
-                  resumeElement.style.width = resumeWidth + "px";
-                  resumeElement.style.maxWidth = resumeWidth + "px";
-                  resumeElement.style.boxSizing = "border-box";
-                  
-                  // Add CSS to prevent page breaks inside sections
-                  const style = document.createElement("style");
-                  style.id = "pdf-page-break-style";
-                  style.textContent = `
-                    .resume, .resume * {
-                      page-break-inside: avoid !important;
-                      break-inside: avoid !important;
-                    }
-                    section, .main-section, .content-card, .card-content {
-                      page-break-inside: avoid !important;
-                      break-inside: avoid !important;
-                    }
-                  `;
-                  document.head.appendChild(style);
-                  
-                  // Force layout recalculation
-                  void resumeElement.offsetHeight;
-                  
-                  // Get actual content height
-                  const actualHeight = Math.max(resumeElement.scrollHeight, resumeElement.offsetHeight);
-                  
-                  // A4 dimensions: 210mm x 297mm
-                  // At 96 DPI: 794px x 1123px
-                  // We want to fit content on one page, so calculate scale
-                  const a4HeightPx = 1123; // A4 height in pixels
-                  const a4WidthPx = 794; // A4 width in pixels
-                  
-                  // Calculate scale to fit height
-                  const heightScale = actualHeight > a4HeightPx ? a4HeightPx / actualHeight : 1;
-                  // Calculate scale to fit width (resumeWidth should fit in a4WidthPx)
-                  const widthScale = resumeWidth > a4WidthPx ? a4WidthPx / resumeWidth : 1;
-                  
-                  // Use the smaller scale to ensure everything fits
-                  const finalScale = Math.min(heightScale, widthScale, 1);
-                  
-                  console.log("Resume element dimensions:", {
-                    width: resumeElement.offsetWidth,
-                    height: actualHeight,
-                    scrollHeight: resumeElement.scrollHeight,
-                    a4Height: a4HeightPx,
-                    heightScale: heightScale,
-                    widthScale: widthScale,
-                    finalScale: finalScale
-                  });
-                  
-                  // Generate PDF with proper settings to fit on one page
-                  html2pdf()
-                    .set({
-                      margin: [0, 0, 0, 0],
-                      filename: `${(resume.title || 'resume').replace(/[^a-z0-9]/gi, '_')}.pdf`,
-                      image: { type: "jpeg", quality: 0.98 },
-                      html2canvas: { 
-                        scale: 2 * finalScale, 
-                        useCORS: true, 
-                        scrollY: 0,
-                        logging: false,
-                        windowWidth: resumeWidth,
-                        width: resumeWidth,
-                        height: actualHeight,
-                        allowTaint: false,
-                        backgroundColor: "#ffffff",
-                        x: 0,
-                        y: 0,
-                        removeContainer: true
-                      },
-                      jsPDF: { 
-                        unit: "mm", 
-                        format: "a4", 
-                        orientation: "portrait",
-                        compress: true
-                      },
-                      pagebreak: { 
-                        mode: ['avoid-all', 'css', 'legacy']
-                      }
-                    })
-                    .from(resumeElement)
-                    .save()
-                    .then(() => {
-                      // Remove the style after PDF generation
-                      const pdfStyle = document.getElementById("pdf-page-break-style");
-                      if (pdfStyle) {
-                        document.head.removeChild(pdfStyle);
-                      }
-                    })
-                    .then(() => {
-                      console.log("✅ Resume downloaded successfully");
-                      cleanup();
-                    })
-                    .catch(err => {
-                      console.error("Error generating PDF:", err);
-                      alert("Error generating PDF: " + err.message);
-                      cleanup();
-                    });
-                }, 1000); // Increased wait time for rendering
-              }, 200);
-            });
-          })
+          .then(html => onTemplateHtmlLoaded(html, resume, tempContainer, cleanup))
           .catch(err => {
             console.error("Error loading template:", err);
             alert("Error loading template. Please try again.");
@@ -570,13 +547,13 @@ function downloadResumeDirect(event, resumeId) {
           
           // Remove temporary container
           const temp = document.getElementById("tempResumePreview");
-          if (temp && temp.parentNode) {
-            document.body.removeChild(temp);
+          if (temp) {
+            temp.remove();
           }
           
           // Remove temporary CSS if we added it
-          if (!existingCSS && cssLink && cssLink.parentNode) {
-            document.head.removeChild(cssLink);
+          if (!existingCSS && cssLink?.parentNode) {
+            cssLink.remove();
           }
         } catch (e) {
           console.error("Cleanup error:", e);
@@ -659,29 +636,25 @@ document.addEventListener("click", (e) => {
   }
 });
 
-fetch("/api/resumes/skills/frequency")
-  .then(res => res.json())
-  .then(data => {
-    const container = document.getElementById("topSkills");
-    if (!container) return;
+const skillsRes = await fetch("/api/resumes/skills/frequency");
+const skillsData = await skillsRes.json();
+const topSkillsContainer = document.getElementById("topSkills");
+if (topSkillsContainer) {
+  topSkillsContainer.innerHTML = "";
 
-    container.innerHTML = "";
+  const entries = Object.entries(skillsData)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6); // show top 6 skills
 
-    const entries = Object.entries(data)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6); // show top 6 skills
-
-    if (entries.length === 0) {
-      container.innerHTML = "<p class='text-muted'>No skills data available</p>";
-      return;
-    }
-
+  if (entries.length === 0) {
+    topSkillsContainer.innerHTML = "<p class='text-muted'>No skills data available</p>";
+  } else {
     const maxCount = entries[0][1];
 
     entries.forEach(([skill, count]) => {
       const percent = Math.round((count / maxCount) * 100);
 
-      container.innerHTML += `
+      topSkillsContainer.innerHTML += `
         <div class="skill-row">
           <span class="skill-name">${skill}</span>
 
@@ -693,7 +666,8 @@ fetch("/api/resumes/skills/frequency")
         </div>
       `;
     });
-  });
+  }
+}
 
 async function deleteResume(event, resumeId) {
   event.stopPropagation(); // 🔥 prevents opening preview
@@ -886,7 +860,7 @@ function showAIStep2() {
 
 async function proceedFromRoleToForm() {
   const roleInput = document.getElementById("aiTargetRole");
-  const role = (roleInput && roleInput.value.trim()) || "";
+  const role = roleInput?.value?.trim() || "";
   if (!role) {
     alert("Please enter the role you want (e.g. Java Developer, Data Scientist).");
     return;
@@ -1025,10 +999,248 @@ async function submitAIResume() {
 
 }
 
+function _injectGetEl(container, id) {
+  return container ? container.querySelector("#" + id) : document.getElementById(id);
+}
+
+function _injectSetText(container, id, value) {
+  const el = _injectGetEl(container, id);
+  if (el) {
+    el.textContent = value == null ? "" : String(value);
+    if ((value == null ? "" : String(value)).trim()) el.style.display = "";
+  }
+}
+
+function _injectBasicInfo(container, data) {
+  if (!data.step1) return;
+  const step1 = data.step1;
+  const name = (step1.name || "").trim();
+  const title = (step1.title || "").trim();
+  const email = (step1.email || "").trim();
+  const phone = (step1.phone || "").trim();
+  const location = (step1.location || "").trim();
+  const fields = [
+    ["previewName", name],
+    ["previewTitle", title],
+    ["previewEmail", email],
+    ["previewPhone", phone],
+    ["previewLocation", location]
+  ];
+  fields.forEach(([id, val]) => {
+    const el = _injectGetEl(container, id);
+    if (el) {
+      el.textContent = val;
+      el.style.display = val ? "" : "none";
+    }
+  });
+}
+
+function _injectSkillsList(data) {
+  if (Array.isArray(data.step4)) {
+    return data.step4.map(s => (typeof s === "string" ? s : s?.name)).filter(Boolean);
+  }
+  if (typeof data.step4 === "string" && data.step4.trim()) {
+    return data.step4.split("\n").map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function _injectSkills(container, data) {
+  const skills = _injectSkillsList(data);
+  const skillsBox = _injectGetEl(container, "previewSkills");
+  const skillsSection = _injectGetEl(container, "skillsSection");
+  if (!skillsBox) {
+    console.error("previewSkills element not found!");
+    return;
+  }
+  console.log("Setting skills:", skills);
+  if (skills.length) {
+    skillsBox.innerHTML = skills.map(s => `<li>${s}</li>`).join("");
+    skillsBox.style.display = "";
+    revealSection(skillsBox);
+    skillsSection?.classList.remove("hide-section");
+    skillsSection?.style.setProperty("display", "");
+  } else {
+    skillsBox.innerHTML = "";
+    skillsBox.style.display = "none";
+    skillsSection?.classList.add("hide-section");
+    skillsSection?.style.setProperty("display", "none");
+  }
+}
+
+function _injectSummary(container, data, skills) {
+  const summaryEl = _injectGetEl(container, "previewSummary");
+  if (!summaryEl) return;
+  const summary = (data.step1?.summary || "").trim();
+  summaryEl.innerHTML = summary ? highlightKeywords(summary, skills) : "";
+  summaryEl.style.display = summary ? "" : "none";
+  if (summary) revealSection(summaryEl);
+}
+
+function _injectLanguages(container, data) {
+  const langList = _injectGetEl(container, "pLanguages");
+  if (!langList) return;
+  let languages = [];
+  if (data.step1) {
+    if (Array.isArray(data.step1.languages)) languages = data.step1.languages;
+    else if (typeof data.step1.languages === "string" && data.step1.languages.trim()) {
+      languages = data.step1.languages.split("\n").map(l => l.trim()).filter(Boolean);
+    }
+  }
+  langList.innerHTML = languages.length ? languages.map(l => `<li>${l}</li>`).join("") : "";
+  langList.style.display = languages.length ? "" : "none";
+  if (languages.length) revealSection(langList);
+}
+
+function _injectCertifications(container, data) {
+  const certList = _injectGetEl(container, "pCerts");
+  if (!certList) return;
+  let certificates = [];
+  if (data.step1) {
+    const certData = data.step1.certificates || data.step1.certs;
+    if (Array.isArray(certData)) certificates = certData;
+    else if (typeof certData === "string" && certData.trim()) {
+      certificates = certData.split("\n").map(c => c.trim()).filter(Boolean);
+    }
+  }
+  certList.innerHTML = certificates.length ? certificates.map(c => `<li>${c}</li>`).join("") : "";
+  certList.style.display = certificates.length ? "" : "none";
+  if (certificates.length) revealSection(certList);
+}
+
+function _formatGraduationDate(s2) {
+  if (s2.month) return s2.current ? `Expected ${formatMonth(s2.month)}` : formatMonth(s2.month);
+  if (s2.year) return (s2.year || "").toString().trim();
+  return "";
+}
+
+function _applyEducationSectionVisibility(container, edu, degree, field, school, location) {
+  const hasContent = degree || field || school;
+  edu.classList.toggle("hide-section", !hasContent);
+  edu.classList.toggle("show", !!hasContent);
+  edu.style.display = hasContent ? "" : "none";
+  if (hasContent) {
+    if (degree) _injectGetEl(container, "previewDegree")?.style.setProperty("display", "", "important");
+    if (field) _injectGetEl(container, "previewField")?.style.setProperty("display", "", "important");
+    if (school) _injectGetEl(container, "previewEduInstitute")?.style.setProperty("display", "", "important");
+    if (location) _injectGetEl(container, "previewEduLocation")?.style.setProperty("display", "", "important");
+  }
+}
+
+function _injectEducation(container, data) {
+  if (!data.step2) return;
+  const s2 = data.step2;
+  const degree = (s2.degree || "").trim();
+  const field = (s2.field || "").trim();
+  const school = (s2.school || s2.institution || "").trim();
+  const location = (s2.location || "").trim();
+  _injectSetText(container, "previewDegree", degree);
+  _injectSetText(container, "previewField", field);
+  _injectSetText(container, "previewEduInstitute", school);
+  _injectSetText(container, "previewEduLocation", location);
+  _injectSetText(container, "previewGraduation", _formatGraduationDate(s2));
+
+  const eduDetailsEl = _injectGetEl(container, "previewEduDetails");
+  const hasDetails = Array.isArray(s2.details) && s2.details.length > 0;
+  if (eduDetailsEl && hasDetails) {
+    eduDetailsEl.innerHTML = s2.details.map(d => `<li>${d}</li>`).join("");
+    eduDetailsEl.style.display = "";
+  }
+
+  const edu = _injectGetEl(container, "educationSection");
+  if (edu) _applyEducationSectionVisibility(container, edu, degree, field, school, location);
+}
+
+function _injectExperience(container, data) {
+  const hasExp = Array.isArray(data.step3) && data.step3.length;
+  const sec = _injectGetEl(container, "previewExperienceSection");
+  if (!sec) return;
+  if (hasExp) {
+    const list = _injectGetEl(container, "previewExperienceList");
+    if (!list) return;
+    list.innerHTML = data.step3.map(exp => {
+      const jobTitle = exp.jobTitle || "";
+      const employer = exp.employer || "";
+      const city = exp.city || "";
+      const country = exp.country || "";
+      const startDate = exp.startMonth || exp.startDate || "";
+      const endDate = exp.endMonth || exp.endDate || "";
+      const description = exp.description || "";
+      const listItems = description.split("\n").filter(Boolean).map(d => "<li>" + d + "</li>").join("");
+      const descHtml = description.includes("\n") ? "<ul>" + listItems + "</ul>" : "<p>" + description + "</p>";
+      const cityCountrySep = city && country ? ", " : "";
+      const locationLine = (city || country) ? `<small>${city}${cityCountrySep}${country}</small><br>` : "";
+      const dateRange = endDate ? " – " + endDate : "";
+      const dateLine = (startDate || endDate) ? `<small>${startDate}${dateRange}</small>` : "";
+      return `
+          <div class="mb-3">
+            <strong>${jobTitle}${employer ? " – " + employer : ""}</strong><br>
+            ${locationLine}
+            ${dateLine}
+            ${descHtml}
+          </div>
+        `;
+    }).join("");
+    sec.classList.remove("hide-section");
+    sec.classList.add("show");
+    sec.style.display = "";
+  } else {
+    sec.classList.add("hide-section");
+    sec.style.display = "none";
+  }
+}
+
+function _injectCustomSections(container, data) {
+  const customSections = data.customSections || [];
+  const root = container || document;
+  root.querySelectorAll(".custom-section-final").forEach(el => el.remove());
+  if (!customSections.length) return;
+  let rightPanel = container?.querySelector(".content-column") ?? document.querySelector(".content-column");
+  rightPanel = rightPanel ?? container?.querySelector(".right-panel") ?? document.querySelector(".right-panel");
+  rightPanel = rightPanel ?? container?.querySelector("main") ?? document.querySelector("main");
+  rightPanel = rightPanel ?? document.querySelector("#previewExperienceSection")?.parentElement ?? document.querySelector("#educationSection")?.parentElement;
+  if (!rightPanel) {
+    console.error("❌ Right panel not found! Cannot add custom sections.");
+    return;
+  }
+  const existingSection = rightPanel.querySelector(".content-card") || rightPanel.querySelector(".main-section") || rightPanel.querySelector(".card-content") || rightPanel.querySelector("section");
+  let sectionClass = "main-section";
+  let useWrapper = false;
+  let wrapperClass = "";
+  if (existingSection?.classList.contains("content-card")) {
+    sectionClass = "content-card";
+  } else if (existingSection?.classList.contains("card-content")) {
+    sectionClass = "main-section card-content";
+    useWrapper = true;
+    wrapperClass = "content-box";
+  }
+  customSections.forEach((section, index) => {
+    const sectionEl = document.createElement("section");
+    sectionEl.className = `${sectionClass} custom-section-final`;
+    sectionEl.id = `customSectionFinal${index}`;
+    const customListItems = section.description.split("\n").filter(Boolean).map(d => "<li>" + escapeHtml(d) + "</li>").join("");
+    const descHtml = section.description.includes("\n") ? "<ul>" + customListItems + "</ul>" : "<p>" + escapeHtml(section.description) + "</p>";
+    sectionEl.innerHTML = useWrapper && wrapperClass
+      ? `<div class="section-title"><span class="title-icon"></span><h3>${escapeHtml(section.name.toUpperCase())}</h3></div><div class="${wrapperClass}">${descHtml}</div>`
+      : `<h3>${escapeHtml(section.name.toUpperCase())}</h3>${descHtml}`;
+    const experienceSection = rightPanel.querySelector("#previewExperienceSection");
+    if (experienceSection) {
+      experienceSection.after(sectionEl);
+    } else {
+      const allSections = rightPanel.querySelectorAll("section");
+      const lastSection = allSections[allSections.length - 1];
+      if (lastSection) lastSection.after(sectionEl);
+      else rightPanel.appendChild(sectionEl);
+    }
+    sectionEl.classList.remove("hide-section");
+    sectionEl.style.display = sectionClass === "content-card" ? "block" : "";
+    sectionEl.style.visibility = "visible";
+  });
+}
+
 function injectFinalData(data) {
   if (!data) {
     console.warn("No resume data found, trying localStorage fallback");
-    // Fallback to localStorage if API data is missing
     data = {
       step1: JSON.parse(localStorage.getItem("step1") || "{}"),
       step2: JSON.parse(localStorage.getItem("step2") || "{}"),
@@ -1036,387 +1248,19 @@ function injectFinalData(data) {
       step4: JSON.parse(localStorage.getItem("skills") || "[]"),
       customSections: JSON.parse(localStorage.getItem("customSections") || "[]")
     };
-    console.log("Using localStorage fallback data:", data);
   }
-  
-  if (!data.step1) {
-    console.warn("No step1 data found in resume data:", data);
-  }
+  if (!data.step1) console.warn("No step1 data found in resume data:", data);
 
-  // Scope lookups to the preview container so we always target the loaded template
   const container = document.getElementById("finalResumePreview");
-  function getEl(id) {
-    return container ? container.querySelector("#" + id) : document.getElementById(id);
-  }
-  function setTextLocal(id, value) {
-    const el = getEl(id);
-    if (el) {
-      el.textContent = value != null ? String(value) : "";
-      if ((value != null ? String(value) : "").trim()) el.style.display = "";
-    }
-  }
-
-  console.log("=== INJECTING FINAL DATA ===");
-  console.log("step1:", JSON.stringify(data.step1, null, 2));
-  console.log("step2:", JSON.stringify(data.step2, null, 2));
-  console.log("step3:", JSON.stringify(data.step3, null, 2));
-  console.log("step4:", JSON.stringify(data.step4, null, 2));
-
-  /* ========== BASIC INFO ========== */
-  if (data.step1) {
-    const name = (data.step1.name || "").trim();
-    const title = (data.step1.title || "").trim();
-    const email = (data.step1.email || "").trim();
-    const phone = (data.step1.phone || "").trim();
-    const location = (data.step1.location || "").trim();
-    
-    const nameEl = getEl("previewName");
-    const titleEl = getEl("previewTitle");
-    const emailEl = getEl("previewEmail");
-    const phoneEl = getEl("previewPhone");
-    const locationEl = getEl("previewLocation");
-    
-    if (nameEl) {
-      nameEl.textContent = name;
-      nameEl.style.display = name ? "" : "none";
-    }
-    if (titleEl) {
-      titleEl.textContent = title;
-      titleEl.style.display = title ? "" : "none";
-    }
-    if (emailEl) {
-      emailEl.textContent = email;
-      emailEl.style.display = email ? "" : "none";
-    }
-    if (phoneEl) {
-      phoneEl.textContent = phone;
-      phoneEl.style.display = phone ? "" : "none";
-    }
-    if (locationEl) {
-      locationEl.textContent = location;
-      locationEl.style.display = location ? "" : "none";
-    }
-  }
-
-  /* ========== SKILLS ========== */
-  let skills = [];
-  if (Array.isArray(data.step4)) {
-    skills = data.step4.map(s => typeof s === "string" ? s : s?.name).filter(Boolean);
-  } else if (typeof data.step4 === "string" && data.step4.trim()) {
-    skills = data.step4.split("\n").map(s => s.trim()).filter(Boolean);
-  }
-
-  const skillsBox = getEl("previewSkills");
-  const skillsSection = getEl("skillsSection");
-  if (skillsBox) {
-    console.log("Setting skills:", skills);
-    if (skills.length) {
-      skillsBox.innerHTML = skills.map(s => `<li>${s}</li>`).join("");
-      skillsBox.style.display = "";
-      console.log("Skills box innerHTML set to:", skillsBox.innerHTML);
-      revealSection(skillsBox);
-      if (skillsSection) {
-        skillsSection.classList.remove("hide-section");
-        skillsSection.style.display = "";
-      }
-    } else {
-      skillsBox.innerHTML = "";
-      skillsBox.style.display = "none";
-      if (skillsSection) {
-        skillsSection.classList.add("hide-section");
-        skillsSection.style.display = "none";
-      }
-    }
-  } else {
-    console.error("previewSkills element not found!");
-  }
-
-  /* ========== SUMMARY ========== */
-  const summaryEl = getEl("previewSummary");
-  if (summaryEl) {
-    const summary = (data.step1?.summary || "").trim();
-    if (summary) {
-      summaryEl.innerHTML = highlightKeywords(summary, skills);
-      summaryEl.style.display = "";
-      revealSection(summaryEl);
-    } else {
-      summaryEl.innerHTML = "";
-      summaryEl.style.display = "none";
-    }
-  }
-
-  /* ========== LANGUAGES ========== */
-  const langList = getEl("pLanguages");
-  if (langList) {
-    // Handle both string (newline-separated) and array formats
-    let languages = [];
-    if (data.step1) {
-      if (Array.isArray(data.step1.languages)) {
-        languages = data.step1.languages;
-      } else if (typeof data.step1.languages === "string" && data.step1.languages.trim()) {
-        languages = data.step1.languages.split("\n").map(l => l.trim()).filter(Boolean);
-      }
-    }
-    
-    if (languages.length) {
-      langList.innerHTML = languages.map(l => `<li>${l}</li>`).join("");
-      langList.style.display = "";
-      revealSection(langList);
-    } else {
-      langList.innerHTML = "";
-      langList.style.display = "none";
-    }
-  }
-
-  /* ========== CERTIFICATIONS ========== */
-  const certList = getEl("pCerts");
-  if (certList) {
-    // Handle both string (newline-separated) and array formats
-    // Check for both 'certificates' and 'certs' keys
-    let certificates = [];
-    if (data.step1) {
-      const certData = data.step1.certificates || data.step1.certs;
-      
-      if (Array.isArray(certData)) {
-        certificates = certData;
-      } else if (typeof certData === "string" && certData.trim()) {
-        certificates = certData.split("\n").map(c => c.trim()).filter(Boolean);
-      }
-    }
-    
-    if (certificates.length) {
-      certList.innerHTML = certificates.map(c => `<li>${c}</li>`).join("");
-      certList.style.display = "";
-      revealSection(certList);
-    } else {
-      certList.innerHTML = "";
-      certList.style.display = "none";
-    }
-  }
-
-  /* ========== EDUCATION ========== */
-  if (data.step2) {
-    const degree = (data.step2.degree || "").trim();
-    const field = (data.step2.field || "").trim();
-    const school = (data.step2.school || data.step2.institution || "").trim();
-    const location = (data.step2.location || "").trim();
-    
-    setTextLocal("previewDegree", degree);
-    setTextLocal("previewField", field);
-    setTextLocal("previewEduInstitute", school);
-    setTextLocal("previewEduLocation", location);
-    
-    if (data.step2.month) {
-      const dateText = data.step2.current
-        ? `Expected ${formatMonth(data.step2.month)}`
-        : formatMonth(data.step2.month);
-      setTextLocal("previewGraduation", dateText);
-    } else if (data.step2.year) {
-      setTextLocal("previewGraduation", (data.step2.year || "").toString().trim());
-    } else {
-      setTextLocal("previewGraduation", "");
-    }
-
-    const eduDetailsEl = getEl("previewEduDetails");
-    if (eduDetailsEl && Array.isArray(data.step2.details) && data.step2.details.length) {
-      eduDetailsEl.innerHTML = data.step2.details.map(d => `<li>${d}</li>`).join("");
-      eduDetailsEl.style.display = "";
-    }
-
-    const edu = getEl("educationSection");
-    if (edu) {
-      if (degree || field || school) {
-        edu.classList.remove("hide-section");
-        edu.classList.add("show");
-        edu.style.display = "";
-        if (degree) getEl("previewDegree")?.style.setProperty("display", "", "important");
-        if (field) getEl("previewField")?.style.setProperty("display", "", "important");
-        if (school) getEl("previewEduInstitute")?.style.setProperty("display", "", "important");
-        if (location) getEl("previewEduLocation")?.style.setProperty("display", "", "important");
-      } else {
-        edu.classList.add("hide-section");
-        edu.style.display = "none";
-      }
-    }
-  }
-
-  /* ========== EXPERIENCE ========== */
-  if (Array.isArray(data.step3) && data.step3.length) {
-    const sec = getEl("previewExperienceSection");
-    const list = getEl("previewExperienceList");
-
-    if (sec && list) {
-      list.innerHTML = data.step3.map(exp => {
-        const jobTitle = exp.jobTitle || "";
-        const employer = exp.employer || "";
-        const city = exp.city || "";
-        const country = exp.country || "";
-        const startDate = exp.startMonth || exp.startDate || "";
-        const endDate = exp.endMonth || exp.endDate || "";
-        const description = exp.description || "";
-        
-        // Format description as list if it contains newlines
-        const descHtml = description.includes("\n")
-          ? `<ul>${description.split("\n").filter(Boolean).map(d => `<li>${d}</li>`).join("")}</ul>`
-          : `<p>${description}</p>`;
-        
-        return `
-          <div class="mb-3">
-            <strong>${jobTitle}${employer ? " – " + employer : ""}</strong><br>
-            ${city || country ? `<small>${city}${city && country ? ", " : ""}${country}</small><br>` : ""}
-            ${startDate || endDate ? `<small>${startDate}${endDate ? " – " + endDate : ""}</small>` : ""}
-            ${descHtml}
-          </div>
-        `;
-      }).join("");
-
-      sec.classList.remove("hide-section");
-      sec.classList.add("show");
-      sec.style.display = "";
-      console.log("Experience section shown with", data.step3.length, "items");
-    }
-  } else {
-    const sec = getEl("previewExperienceSection");
-    if (sec) {
-      sec.classList.add("hide-section");
-      sec.style.display = "none";
-    }
-  }
-
-  /* ========== CUSTOM SECTIONS ========== */
-  const customSections = data.customSections || [];
-  
-  const root = container || document;
-  root.querySelectorAll(".custom-section-final").forEach(el => el.remove());
-  
-  if (customSections.length) {
-    let rightPanel = container ? container.querySelector(".content-column") : document.querySelector(".content-column");
-    if (!rightPanel) {
-      rightPanel = container ? container.querySelector(".right-panel") : document.querySelector(".right-panel");
-    }
-    if (!rightPanel) {
-      rightPanel = container ? container.querySelector("main") : document.querySelector("main");
-    }
-    if (!rightPanel) {
-      // Fallback: find main content area by looking for sections
-      rightPanel =
-        (container ? container.querySelector("#previewExperienceSection") : document.querySelector("#previewExperienceSection"))?.parentElement ||
-        (container ? container.querySelector("#educationSection") : document.querySelector("#educationSection"))?.parentElement;
-    }
-    
-    console.log("Right panel found:", rightPanel, "Class:", rightPanel?.className, "Tag:", rightPanel?.tagName);
-    
-    if (rightPanel) {
-      // Detect template type by checking existing section classes and structure
-      const existingSection = rightPanel.querySelector(".content-card") || rightPanel.querySelector(".main-section") || rightPanel.querySelector(".card-content") || rightPanel.querySelector("section");
-      console.log("Existing section found:", existingSection, "Classes:", existingSection?.className);
-      
-      let sectionClass = "main-section";
-      let useWrapper = false;
-      let wrapperClass = "";
-      
-      if (existingSection) {
-        // Check for blue-corporate template (uses content-card)
-        if (existingSection.classList.contains("content-card")) {
-          sectionClass = "content-card";
-          console.log("Detected blue-corporate template, using content-card class");
-        } 
-        // Check for academic-yellow template (uses main-section card-content with inner structure)
-        else if (existingSection.classList.contains("card-content")) {
-          sectionClass = "main-section card-content";
-          useWrapper = true;
-          wrapperClass = "content-box";
-          console.log("Detected academic-yellow template");
-        } 
-        // Default to main-section
-        else {
-          sectionClass = "main-section";
-          console.log("Using default main-section class");
-        }
-      }
-      
-      customSections.forEach((section, index) => {
-        const sectionEl = document.createElement("section");
-        sectionEl.className = `${sectionClass} custom-section-final`;
-        sectionEl.id = `customSectionFinal${index}`;
-        
-        // Format description - handle newlines
-        const descHtml = section.description.includes("\n")
-          ? `<ul>${section.description.split("\n").filter(Boolean).map(d => `<li>${escapeHtml(d)}</li>`).join("")}</ul>`
-          : `<p>${escapeHtml(section.description)}</p>`;
-        
-        // Check if template uses wrapper structure (like academic-yellow)
-        if (useWrapper && wrapperClass) {
-          sectionEl.innerHTML = `
-            <div class="section-title">
-              <span class="title-icon"></span>
-              <h3>${escapeHtml(section.name.toUpperCase())}</h3>
-            </div>
-            <div class="${wrapperClass}">
-              ${descHtml}
-            </div>
-          `;
-        } else {
-          sectionEl.innerHTML = `
-            <h3>${escapeHtml(section.name.toUpperCase())}</h3>
-            ${descHtml}
-          `;
-        }
-        
-        // Insert after experience section if it exists, otherwise append
-        const experienceSection = rightPanel.querySelector("#previewExperienceSection");
-        console.log("Experience section found:", experienceSection, "Display:", experienceSection?.style.display, "Classes:", experienceSection?.className);
-        
-        if (experienceSection) {
-          // Insert after the experience section
-          experienceSection.insertAdjacentElement("afterend", sectionEl);
-          console.log("✅ Inserted custom section after experience section");
-        } else {
-          // If no experience section, find the last section or append to the end
-          const allSections = rightPanel.querySelectorAll("section");
-          const lastSection = allSections[allSections.length - 1];
-          console.log("All sections found:", allSections.length, "Last section:", lastSection);
-          
-          if (lastSection) {
-            lastSection.insertAdjacentElement("afterend", sectionEl);
-            console.log("✅ Inserted custom section after last section");
-          } else {
-            rightPanel.appendChild(sectionEl);
-            console.log("✅ Appended custom section to end of right panel");
-          }
-        }
-        
-        // Ensure section is visible - remove hide-section class and set display
-        sectionEl.classList.remove("hide-section");
-        sectionEl.style.display = "";
-        sectionEl.style.visibility = "visible";
-        
-        // Force visibility for blue-corporate template (content-card)
-        if (sectionClass === "content-card") {
-          sectionEl.style.display = "block";
-        }
-        
-        // Verify it's actually in the DOM
-        const isInDOM = document.body.contains(sectionEl);
-        const computedDisplay = window.getComputedStyle(sectionEl).display;
-        const computedVisibility = window.getComputedStyle(sectionEl).visibility;
-        
-        console.log("✅ Added custom section:", section.name);
-        console.log("   Class:", sectionClass);
-        console.log("   Element:", sectionEl);
-        console.log("   Parent:", sectionEl.parentElement);
-        console.log("   In DOM:", isInDOM);
-        console.log("   Computed display:", computedDisplay);
-        console.log("   Computed visibility:", computedVisibility);
-        
-        if (!isInDOM || computedDisplay === "none") {
-          console.error("❌ Custom section not visible! Display:", computedDisplay, "Visibility:", computedVisibility);
-        }
-      });
-    } else {
-      console.error("❌ Right panel not found! Cannot add custom sections.");
-    }
-  }
+  _injectBasicInfo(container, data);
+  const skills = _injectSkillsList(data);
+  _injectSkills(container, data);
+  _injectSummary(container, data, skills);
+  _injectLanguages(container, data);
+  _injectCertifications(container, data);
+  _injectEducation(container, data);
+  _injectExperience(container, data);
+  _injectCustomSections(container, data);
 }
 
 
@@ -1454,10 +1298,10 @@ function highlightKeywords(text, keywords) {
   if (!text || !Array.isArray(keywords)) return text;
 
   const escaped = keywords.map(k =>
-    k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    k.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
   );
 
-  const regex = new RegExp(`\\b(${escaped.join("|")})\\b`, "gi");
+  const regex = new RegExp(String.raw`\b(${escaped.join("|")})\b`, "gi");
 
   return text.replace(regex, `<span class="ats-highlight">$1</span>`);
 }
@@ -1535,8 +1379,8 @@ document.getElementById("atsCheckModal")?.addEventListener("show.bs.modal", asyn
             try {
               const date = new Date(resume.created_at);
               dateInfo = ` • ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-            } catch (e) {
-              // Ignore date parsing errors
+            } catch {
+              dateInfo = ""; // Fallback when date parsing fails
             }
           }
           
@@ -1559,8 +1403,7 @@ document.getElementById("atsCheckModal")?.addEventListener("show.bs.modal", asyn
 
 document.getElementById("atsCheckForm")?.addEventListener("submit", async function(e) {
   e.preventDefault();
-  
-  const form = e.target;
+
   const checkBtn = document.getElementById("checkAtsBtn");
   const resultsDiv = document.getElementById("atsResults");
   const jobDescTextarea = document.getElementById("jobDescription");
@@ -1633,129 +1476,112 @@ document.getElementById("atsCheckForm")?.addEventListener("submit", async functi
   }
 });
 
-function displayATSResults(data) {
-  // Display score - use resume_score (same as card/preview) instead of ats_score for consistency
-  console.log("displayATSResults called with data:", data);
-  console.log("Raw resume_score value:", data.resume_score, "Type:", typeof data.resume_score);
-  console.log("Raw ats_score value:", data.ats_score, "Type:", typeof data.ats_score);
-  
-  // Use resume_score if available (matches card/preview), otherwise fall back to ats_score
-  let scoreValue = 0;
-  if (data.resume_score !== undefined && data.resume_score !== null) {
-    scoreValue = typeof data.resume_score === 'string' ? parseFloat(data.resume_score) : data.resume_score;
-    scoreValue = Math.round(scoreValue);
-  } else if (data.ats_score !== undefined && data.ats_score !== null) {
-    scoreValue = typeof data.ats_score === 'string' ? parseFloat(data.ats_score) : data.ats_score;
-    scoreValue = Math.round(scoreValue);
-  }
-  
-  console.log("Calculated scoreValue (using resume_score):", scoreValue);
-  
+function _atsNormalizeScore(data) {
+  const raw = data.resume_score ?? data.ats_score;
+  if (raw == null) return 0;
+  const num = typeof raw === "string" ? Number.parseFloat(raw) : raw;
+  return Math.round(num);
+}
+
+function _atsGetScoreTier(scoreValue) {
+  if (scoreValue >= 80) return "excellent";
+  if (scoreValue >= 60) return "good";
+  return "poor";
+}
+
+function _atsSetScoreDisplay(scoreValue) {
   const scoreValueEl = document.getElementById("atsScoreValue");
-  if (scoreValueEl) {
-    scoreValueEl.textContent = scoreValue;
-    console.log("Set atsScoreValue element to:", scoreValue);
-  } else {
-    console.error("atsScoreValue element not found!");
-  }
-  
-  // Score message
+  if (scoreValueEl) scoreValueEl.textContent = scoreValue;
+
   const scoreMessage = document.getElementById("atsScoreMessage");
-  if (scoreMessage) {
-    if (scoreValue >= 80) {
-      scoreMessage.textContent = "Excellent! Your resume is highly ATS-compatible.";
-      scoreMessage.className = "text-success";
-    } else if (scoreValue >= 60) {
-      scoreMessage.textContent = "Good! Some improvements can be made.";
-      scoreMessage.className = "text-warning";
-    } else {
-      scoreMessage.textContent = "Needs improvement for better ATS compatibility.";
-      scoreMessage.className = "text-danger";
-    }
-  }
-  
-  // Update score circle color based on score
-  const scoreCircle = document.querySelector(".ats-score-circle");
-  if (scoreCircle) {
-    if (scoreValue >= 80) {
-      scoreCircle.style.background = "linear-gradient(135deg, var(--neon-green) 0%, var(--neon-hover) 100%)";
-    } else if (scoreValue >= 60) {
-      scoreCircle.style.background = "linear-gradient(135deg, #ffc107 0%, #ff9800 100%)";
-    } else {
-      scoreCircle.style.background = "linear-gradient(135deg, #ff4444 0%, #cc0000 100%)";
-    }
-  }
-  
-  // Keyword match percentage
-  const keywordMatchPercent = data.keyword_match_percent || 0;
-  const keywordMatchBar = document.getElementById("keywordMatchBar");
-  const keywordMatchPercentSpan = document.getElementById("keywordMatchPercent");
-  if (keywordMatchBar) {
-    keywordMatchBar.style.width = keywordMatchPercent + "%";
-  }
-  if (keywordMatchPercentSpan) {
-    keywordMatchPercentSpan.textContent = keywordMatchPercent.toFixed(1) + "%";
-  }
-  
-  // Missing keywords
-  const missingKeywordsDiv = document.getElementById("missingKeywords");
-  if (missingKeywordsDiv) {
-    if (data.missing_keywords && data.missing_keywords.length > 0) {
-      missingKeywordsDiv.innerHTML = data.missing_keywords
-        .map(kw => `<span class="keyword-tag">${escapeHtml(kw)}</span>`)
-        .join("");
-    } else {
-      missingKeywordsDiv.innerHTML = '<span class="text-success">No missing keywords detected!</span>';
-    }
-  }
-  
-  // Sections found
-  const sectionsFoundDiv = document.getElementById("sectionsFound");
-  const sections = data.sections_found || {};
-  const allSections = {
-    "Summary": sections.summary || false,
-    "Skills": sections.skills || false,
-    "Experience": sections.experience || false,
-    "Education": sections.education || false,
-    "Projects": sections.projects || false,
-    "Certifications": sections.certifications || false,
-    "Languages": sections.languages || false
+  const tier = _atsGetScoreTier(scoreValue);
+  const messages = {
+    excellent: { text: "Excellent! Your resume is highly ATS-compatible.", className: "text-success" },
+    good: { text: "Good! Some improvements can be made.", className: "text-warning" },
+    poor: { text: "Needs improvement for better ATS compatibility.", className: "text-danger" }
   };
-  
-  sectionsFoundDiv.innerHTML = Object.entries(allSections)
+  if (scoreMessage) {
+    scoreMessage.textContent = messages[tier].text;
+    scoreMessage.className = messages[tier].className;
+  }
+
+  const scoreCircle = document.querySelector(".ats-score-circle");
+  const gradients = {
+    excellent: "linear-gradient(135deg, var(--neon-green) 0%, var(--neon-hover) 100%)",
+    good: "linear-gradient(135deg, #ffc107 0%, #ff9800 100%)",
+    poor: "linear-gradient(135deg, #ff4444 0%, #cc0000 100%)"
+  };
+  if (scoreCircle) scoreCircle.style.background = gradients[tier];
+}
+
+function _atsSetKeywordMatch(percent) {
+  const bar = document.getElementById("keywordMatchBar");
+  const span = document.getElementById("keywordMatchPercent");
+  if (bar) bar.value = percent;
+  if (span) span.textContent = percent.toFixed(1) + "%";
+}
+
+function _atsSetMissingKeywords(missingKeywords) {
+  const div = document.getElementById("missingKeywords");
+  if (!div) return;
+  div.innerHTML = missingKeywords?.length
+    ? missingKeywords.map(kw => "<span class=\"keyword-tag\">" + escapeHtml(kw) + "</span>").join("")
+    : '<span class="text-success">No missing keywords detected!</span>';
+}
+
+function _atsSetSectionsFound(sections) {
+  const div = document.getElementById("sectionsFound");
+  if (!div) return;
+  const allSections = {
+    Summary: sections.summary || false,
+    Skills: sections.skills || false,
+    Experience: sections.experience || false,
+    Education: sections.education || false,
+    Projects: sections.projects || false,
+    Certifications: sections.certifications || false,
+    Languages: sections.languages || false
+  };
+  div.innerHTML = Object.entries(allSections)
     .map(([name, found]) => {
       const badgeClass = found ? "section-found" : "section-missing";
       const icon = found ? "✓" : "✗";
-      return `<span class="section-badge ${badgeClass}">${icon} ${name}</span>`;
+      return "<span class=\"section-badge " + badgeClass + "\">" + icon + " " + name + "</span>";
     })
     .join("");
-  
-  // Formatting issues
+}
+
+function _atsSetFormattingIssues(issues, sectionEl, listEl) {
+  const hasIssues = issues?.length > 0;
+  sectionEl.style.display = hasIssues ? "block" : "none";
+  listEl.innerHTML = hasIssues ? issues.map(issue => "<li>" + escapeHtml(issue) + "</li>").join("") : "";
+}
+
+function _atsSetAiSuggestions(suggestions, listEl) {
+  listEl.innerHTML = suggestions?.length
+    ? suggestions.map(s => "<li>" + escapeHtml(s) + "</li>").join("")
+    : "<li>No specific suggestions available.</li>";
+}
+
+function displayATSResults(data) {
+  const scoreValue = _atsNormalizeScore(data);
+  _atsSetScoreDisplay(scoreValue);
+  _atsSetKeywordMatch(data.keyword_match_percent || 0);
+  _atsSetMissingKeywords(data.missing_keywords);
+  _atsSetSectionsFound(data.sections_found || {});
+
   const formattingIssuesSection = document.getElementById("formattingIssuesSection");
   const formattingIssuesList = document.getElementById("formattingIssues");
-  if (data.formatting_issues && data.formatting_issues.length > 0) {
-    formattingIssuesSection.style.display = "block";
-    formattingIssuesList.innerHTML = data.formatting_issues
-      .map(issue => `<li>${escapeHtml(issue)}</li>`)
-      .join("");
-  } else {
-    formattingIssuesSection.style.display = "none";
+  if (formattingIssuesSection && formattingIssuesList) {
+    _atsSetFormattingIssues(data.formatting_issues, formattingIssuesSection, formattingIssuesList);
   }
-  
-  // AI suggestions
+
   const aiSuggestionsList = document.getElementById("aiSuggestions");
-  if (data.ai_suggestions && data.ai_suggestions.length > 0) {
-    aiSuggestionsList.innerHTML = data.ai_suggestions
-      .map(suggestion => `<li>${escapeHtml(suggestion)}</li>`)
-      .join("");
-  } else {
-    aiSuggestionsList.innerHTML = '<li>No specific suggestions available.</li>';
-  }
+  if (aiSuggestionsList) _atsSetAiSuggestions(data.ai_suggestions, aiSuggestionsList);
 }
 
 // Auto open ATS modal if redirected from dashboard
 document.addEventListener("DOMContentLoaded", () => {
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(globalThis.location.search);
 
   if (params.get("openATS") === "true") {
     const modal = document.getElementById("atsCheckModal");
@@ -1764,3 +1590,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
+
+// Expose handlers for inline onclick (module scope is not global)
+globalThis.openResumePreview = openResumePreview;
+globalThis.deleteResume = deleteResume;
+globalThis.downloadResumeDirect = downloadResumeDirect;
+globalThis.downloadResumePDF = downloadResumePDF;
+globalThis.addExperienceField = addExperienceField;
+globalThis.submitAIResume = submitAIResume;

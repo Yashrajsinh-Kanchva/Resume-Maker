@@ -1,15 +1,25 @@
 // FSD/JS/navbar-loader.js
-fetch("/navbar.html")
-  .then(res => res.text())
-  .then(html => {
-    const container = document.getElementById("navbar-container");
-    if (!container) return;
-    container.innerHTML = html;
-    setActiveNav();
-    loadNavbarUser(); // 👈 important
-    attachLogoutHandler(container);
-    initNavbarDropdowns(container);
-  });
+const navRes = await fetch("/navbar.html");
+const html = await navRes.text();
+const container = document.getElementById("navbar-container");
+if (container) {
+  container.innerHTML = html;
+  setActiveNav();
+  try {
+    const userRes = await fetch("/api/users/me", { credentials: "include" });
+    if (userRes.ok) {
+      const data = await userRes.json();
+      const usernameEl = document.getElementById("username");
+      if (usernameEl && data.user) {
+        usernameEl.textContent = data.user.name || "User";
+      }
+    }
+  } catch (err) {
+    console.error("Navbar user fetch failed", err);
+  }
+  attachLogoutHandler(container);
+  initNavbarDropdowns(container);
+}
 
 function attachLogoutHandler(container) {
   container.addEventListener("click", function (e) {
@@ -18,10 +28,10 @@ function attachLogoutHandler(container) {
     e.preventDefault();
     fetch("/logout", { credentials: "include" })
       .then(function () {
-        window.location.href = "/login";
+        globalThis.location.href = "/login";
       })
       .catch(function () {
-        window.location.href = "/login";
+        globalThis.location.href = "/login";
       });
   });
 }
@@ -31,7 +41,7 @@ function initNavbarDropdowns(container) {
   function init() {
     if (typeof bootstrap === "undefined") return;
     container.querySelectorAll("[data-bs-toggle=\"dropdown\"]").forEach(function (el) {
-      new bootstrap.Dropdown(el);
+      el.bootstrapDropdown = new bootstrap.Dropdown(el);
     });
   }
   if (document.readyState === "loading") {
@@ -42,7 +52,7 @@ function initNavbarDropdowns(container) {
 }
 
 function setActiveNav() {
-  const currentPage = window.location.pathname.split("/").pop();
+  const currentPage = globalThis.location.pathname.split("/").pop();
 
   document.querySelectorAll(".nav-link").forEach(link => {
     if (link.getAttribute("href") === currentPage) {
@@ -51,26 +61,19 @@ function setActiveNav() {
   });
 }
 
+/** Re-fetch and display navbar user (e.g. after login). Exposed for other scripts. */
 async function loadNavbarUser() {
   try {
     const res = await fetch("/api/users/me", { credentials: "include" });
     if (!res.ok) return;
-
     const data = await res.json();
-
     const usernameEl = document.getElementById("username");
-
     if (usernameEl && data.user) {
-      const name = data.user.name || "User";
-      const id = data.user.id || "";
-      // Update username - show name only (remove id if not needed)
-      usernameEl.textContent = name;
+      usernameEl.textContent = data.user.name || "User";
     }
-
   } catch (err) {
     console.error("Navbar user fetch failed", err);
   }
 }
 
-// Make function globally accessible for other scripts
-window.loadNavbarUser = loadNavbarUser;
+globalThis.loadNavbarUser = loadNavbarUser;

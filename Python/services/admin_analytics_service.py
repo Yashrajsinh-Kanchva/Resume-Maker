@@ -1,5 +1,8 @@
 from config.db import db
 
+MONGO_GROUP = "$group"
+MONGO_SORT = "$sort"
+
 
 class AdminAnalyticsService:
 
@@ -7,7 +10,7 @@ class AdminAnalyticsService:
         # ---------- USERS OVER TIME ----------
         users_over_time = list(db["users"].aggregate([
             {
-                "$group": {
+                MONGO_GROUP: {
                     "_id": {
                         "$dateToString": {
                             "format": "%Y-%m-%d",
@@ -17,13 +20,13 @@ class AdminAnalyticsService:
                     "count": {"$sum": 1}
                 }
             },
-            {"$sort": {"_id": 1}}
+            {MONGO_SORT: {"_id": 1}}
         ]))
 
         # ---------- RESUMES OVER TIME ----------
         resumes_over_time = list(db["resumes"].aggregate([
             {
-                "$group": {
+                MONGO_GROUP: {
                     "_id": {
                         "$dateToString": {
                             "format": "%Y-%m-%d",
@@ -33,18 +36,18 @@ class AdminAnalyticsService:
                     "count": {"$sum": 1}
                 }
             },
-            {"$sort": {"_id": 1}}
+            {MONGO_SORT: {"_id": 1}}
         ]))
 
         # ---------- TOP USERS (RAW / ENCODED EMAIL) ----------
         top_users = list(db["resumes"].aggregate([
             {
-                "$group": {
+                MONGO_GROUP: {
                     "_id": "$user_email",   # STILL ENCODED
                     "count": {"$sum": 1}
                 }
             },
-            {"$sort": {"count": -1}},
+            {MONGO_SORT: {"count": -1}},
             {"$limit": 5}
         ]))
 

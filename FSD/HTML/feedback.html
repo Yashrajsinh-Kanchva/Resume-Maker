@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../CSS/navbar.css">
   <link rel="stylesheet" href="../CSS/feedback.css">
 
-  <script src="../JS/navbar-loader.js"></script>
+  <script type="module" src="../JS/navbar-loader.js"></script>
 </head>
 <body class="dark-mode">
 
@@ -28,13 +28,13 @@
     <section class="feedback-wrapper">
       <form id="feedbackForm" class="feedback-card shadow-glow">
 
-        <label class="fw-bold small text-green">YOUR NAME</label>
+        <label for="fbName" class="fw-bold small text-green">YOUR NAME</label>
         <input type="text" id="fbName" class="form-control mb-3 dark-input" placeholder="Rathod Mihir" required>
 
-        <label class="fw-bold small text-green">EMAIL</label>
+        <label for="fbEmail" class="fw-bold small text-green">EMAIL</label>
         <input type="email" id="fbEmail" class="form-control mb-3 dark-input" placeholder="mihir@gmail.com" required>
 
-        <label class="fw-bold small text-green">RATE YOUR EXPERIENCE</label>
+        <label for="rating" class="fw-bold small text-green">RATE YOUR EXPERIENCE</label>
         <select id="rating" class="form-select mb-3 dark-input" required>
           <option value="" selected disabled>Select Rating</option>
           <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
@@ -44,7 +44,7 @@
           <option value="1">⭐ Poor</option>
         </select>
 
-        <label class="fw-bold small text-green">YOUR FEEDBACK</label>
+        <label for="fbMessage" class="fw-bold small text-green">YOUR FEEDBACK</label>
         <textarea id="fbMessage" class="form-control mb-4 dark-input" rows="4" placeholder="Write your feedback..." required></textarea>
 
         <button type="submit" class="primary-btn w-100 shadow-glow">
@@ -54,7 +54,7 @@
       </form>
     </section>
 
-    <script src="../JS/feedback.js"></script>
+    <script type="module" src="../JS/feedback.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

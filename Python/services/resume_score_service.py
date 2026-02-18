@@ -31,165 +31,188 @@ def _looks_like_garbage(s, field_name="field"):
     return False
 
 
-def _validate_resume_data(data):
-    """Check for invalid/placeholder values. Returns list of warning strings."""
+def _name_warning(step1):
+    """Return warning string for name field, or None if ok."""
+    name = (step1.get("name") or "").strip() if step1 else ""
+    if not name:
+        return "Name is missing."
+    if _looks_like_garbage(name, "name"):
+        return "Name looks invalid (e.g. numbers or placeholder). Use your real name."
+    return None
+
+
+def _validate_step1(step1):
+    """Validate step1 (profile) fields. Returns list of warning strings."""
     warnings = []
-    step1 = data.get("step1", {})
-
-    name = (step1.get("name") or "").strip()
-    if name and _looks_like_garbage(name, "name"):
-        warnings.append("Name looks invalid (e.g. numbers or placeholder). Use your real name.")
-    elif not name:
-        warnings.append("Name is missing.")
-
+    if not step1:
+        return warnings
+    w = _name_warning(step1)
+    if w:
+        warnings.append(w)
     title = (step1.get("title") or "").strip()
     if title and _looks_like_garbage(title, "title"):
         warnings.append("Job title looks invalid. Enter a proper job title.")
-
     email = (step1.get("email") or "").strip()
-    if email:
-        # Basic email check: has @ and something after
-        if "@" not in email or len(email) < 5:
-            warnings.append("Email format may be wrong.")
-    else:
+    if email and ("@" not in email or len(email) < 5):
+        warnings.append("Email format may be wrong.")
+    elif not email:
         warnings.append("Email is missing.")
-
     summary = (step1.get("summary") or "").strip()
     if summary and _looks_like_garbage(summary, "summary"):
         warnings.append("Summary looks like placeholder text. Write a short professional summary.")
-
-    step2 = data.get("step2", {})
-    degree = (step2.get("degree") or "").strip() if step2 else ""
-    if degree and _looks_like_garbage(degree, "degree"):
-        warnings.append("Degree/education may be invalid. Check education details.")
-
-    step3 = data.get("step3", [])
-    if isinstance(step3, list):
-        for i, exp in enumerate(step3):
-            if not isinstance(exp, dict):
-                continue
-            job_title = (exp.get("jobTitle") or exp.get("job_title") or "").strip()
-            if job_title and _looks_like_garbage(job_title, "job"):
-                warnings.append(f"Experience #{i+1} job title looks invalid.")
-            employer = (exp.get("employer") or exp.get("company") or "").strip()
-            if employer and _looks_like_garbage(employer, "employer"):
-                warnings.append(f"Experience #{i+1} employer name may be wrong.")
-
     return warnings
+
+
+def _validate_step2(step2):
+    """Validate step2 (education). Returns list of warning strings."""
+    if not step2:
+        return []
+    degree = (step2.get("degree") or "").strip()
+    if degree and _looks_like_garbage(degree, "degree"):
+        return ["Degree/education may be invalid. Check education details."]
+    return []
+
+
+def _validate_step3_experience(step3):
+    """Validate step3 (experience) entries. Returns list of warning strings."""
+    warnings = []
+    if not step3 or not isinstance(step3, list):
+        return warnings
+    for i, exp in enumerate(step3):
+        if not isinstance(exp, dict):
+            continue
+        job_title = (exp.get("jobTitle") or exp.get("job_title") or "").strip()
+        if job_title and _looks_like_garbage(job_title, "job"):
+            warnings.append(f"Experience #{i+1} job title looks invalid.")
+        employer = (exp.get("employer") or exp.get("company") or "").strip()
+        if employer and _looks_like_garbage(employer, "employer"):
+            warnings.append(f"Experience #{i+1} employer name may be wrong.")
+    return warnings
+
+
+def _validate_resume_data(data):
+    """Check for invalid/placeholder values. Returns list of warning strings."""
+    warnings = []
+    warnings.extend(_validate_step1(data.get("step1", {})))
+    warnings.extend(_validate_step2(data.get("step2", {})))
+    warnings.extend(_validate_step3_experience(data.get("step3", [])))
+    return warnings
+
+
+def _skill_text(s):
+    if isinstance(s, str):
+        return s.strip()
+    if isinstance(s, dict):
+        v = s.get("name") or s.get("skill") or s.get("title") or ""
+        return str(v).strip() if v is not None else ""
+    return ""
+
+
+def _profile_score(step1):
+    """Profile (name, title, summary) 0-15."""
+    name_ok = bool((step1.get("name") or "").strip()) and not _looks_like_garbage((step1.get("name") or "").strip(), "name")
+    title_ok = bool((step1.get("title") or "").strip()) and not _looks_like_garbage((step1.get("title") or "").strip(), "title")
+    summary_filled = bool((step1.get("summary") or "").strip())
+    return min((5.0 if name_ok else 0) + (4.0 if title_ok else 0) + (6.0 if summary_filled else 0), 15.0)
+
+
+def _summary_quality_score(step1):
+    """Summary quality 0-15 by length and garbage check."""
+    summary = (step1.get("summary") or "").strip()
+    if _looks_like_garbage(summary, "summary") or not summary:
+        return 0.0
+    n = len(summary)
+    if n >= 100:
+        return 15.0
+    if n >= 80:
+        return 13.0
+    if n >= 60:
+        return 11.0
+    if n >= 40:
+        return 8.0
+    if n >= 20:
+        return 5.0
+    return 2.5
+
+
+def _skills_score(step4):
+    """Skills 0-20."""
+    num_skills = sum(1 for s in step4 if _skill_text(s))
+    return min(num_skills * 3.2, 20.0)
+
+
+def _experience_score(step3):
+    """Experience 0-20."""
+    num_exp = len([e for e in step3 if isinstance(e, dict) and (e.get("jobTitle") or e.get("job_title") or "").strip()])
+    desc_lengths = [len((e.get("description") or "").strip()) for e in step3 if isinstance(e, dict)]
+    if num_exp >= 2:
+        long_desc_count = sum(1 for d in desc_lengths if d > 80)
+        return min(15.0 + min(long_desc_count * 2.5, 5.0), 20.0)
+    if num_exp == 1:
+        d = desc_lengths[0] if desc_lengths else 0
+        if d < 50:
+            return 7.0
+        if d < 120:
+            return 10.0
+        return 13.0
+    return 0.0
+
+
+def _education_score(step2):
+    """Education 0-10."""
+    if not step2:
+        return 0.0
+    degree = (step2.get("degree") or "").strip()
+    has_degree = bool(degree) and not _looks_like_garbage(degree, "degree")
+    has_institution = bool((step2.get("institution") or step2.get("school") or "").strip())
+    return min((5.0 if has_degree else 0.0) + (5.0 if has_institution else 0.0), 10.0)
+
+
+def _projects_score(step3):
+    """Projects / content depth 0-10."""
+    desc_lengths = [len((e.get("description") or "").strip()) for e in step3 if isinstance(e, dict)]
+    project_like = sum(1 for d in desc_lengths if d > 50)
+    if project_like >= 3:
+        return 10.0
+    if project_like == 2:
+        return 7.0
+    if project_like == 1:
+        return 4.0
+    return 0.0
+
+
+def _ats_keywords_score(step1, step3):
+    """ATS keywords 0-10."""
+    summary = (step1.get("summary") or "").strip()
+    descs = " ".join(str(e.get("description") or "") for e in step3 if isinstance(e, dict))
+    text = (summary + " " + descs).lower()
+    keywords = ["python", "java", "javascript", "sql", "api", "react", "node", "aws", "docker", "git", "agile", "leadership", "communication", "analysis", "development", "design", "management"]
+    matches = sum(1 for k in keywords if k in text)
+    return min(matches * 2.2, 10.0)
 
 
 def calculate_resume_score(resume):
     """
     Calculate resume score 0-100 with granular breakdown.
     Returns (score, breakdown, warnings).
-    - score: int 0-100 (e.g. 51, 52) for display
-    - breakdown: dict of category -> points (can be float for granularity)
-    - warnings: list of strings (data quality / validation issues)
     """
-    data = resume.get("data", {})
-    step1 = data.get("step1", {})
-    step2 = data.get("step2", {})
+    data = resume.get("data", {}) or {}
+    step1 = data.get("step1", {}) or {}
+    step2 = data.get("step2", {}) or {}
     step3 = data.get("step3", []) or []
     step4 = data.get("step4", []) or []
 
     warnings = _validate_resume_data(data)
 
-    # Use floats for granular scoring so total can be 51.3 -> 51, 52.7 -> 53
-    total = 0.0
-    breakdown = {}
-
-    # ---------- PROFILE (0-15) ----------
-    name_ok = bool((step1.get("name") or "").strip()) and not _looks_like_garbage((step1.get("name") or "").strip(), "name")
-    title_ok = bool((step1.get("title") or "").strip()) and not _looks_like_garbage((step1.get("title") or "").strip(), "title")
-    summary_filled = bool((step1.get("summary") or "").strip())
-    profile_score = 0.0
-    if name_ok:
-        profile_score += 5.0
-    if title_ok:
-        profile_score += 4.0
-    if summary_filled:
-        profile_score += 6.0
-    breakdown["Profile"] = round(min(profile_score, 15.0), 1)
-    total += breakdown["Profile"]
-
-    # ---------- SUMMARY QUALITY (0-15) ----------
-    summary = (step1.get("summary") or "").strip()
-    if _looks_like_garbage(summary, "summary"):
-        summary_score = 0.0
-    elif len(summary) >= 100:
-        summary_score = 15.0
-    elif len(summary) >= 80:
-        summary_score = 13.0
-    elif len(summary) >= 60:
-        summary_score = 11.0
-    elif len(summary) >= 40:
-        summary_score = 8.0
-    elif len(summary) >= 20:
-        summary_score = 5.0
-    elif len(summary) > 0:
-        summary_score = 2.5
-    else:
-        summary_score = 0.0
-    breakdown["Summary"] = round(summary_score, 1)
-    total += breakdown["Summary"]
-
-    # ---------- SKILLS (0-20) ----------
-    def _skill_text(s):
-        if isinstance(s, str):
-            return s.strip()
-        if isinstance(s, dict):
-            v = s.get("name") or s.get("skill") or s.get("title") or ""
-            return str(v).strip() if v is not None else ""
-        return ""
-
-    num_skills = sum(1 for s in step4 if _skill_text(s))
-    skills_score = min(num_skills * 3.2, 20.0)  # 3.2 per skill -> 6.4, 9.6, ... 19.2, 20
-    breakdown["Skills"] = round(skills_score, 1)
-    total += breakdown["Skills"]
-
-    # ---------- EXPERIENCE (0-20) ----------
-    num_exp = len([e for e in step3 if isinstance(e, dict) and (e.get("jobTitle") or e.get("job_title") or "").strip()])
-    desc_lengths = [len((e.get("description") or "").strip()) for e in step3 if isinstance(e, dict)]
-    if num_exp >= 2:
-        # Quality: long descriptions get extra
-        long_desc_count = sum(1 for d in desc_lengths if d > 80)
-        exp_score = 15.0 + min(long_desc_count * 2.5, 5.0)  # 15-20
-    elif num_exp == 1:
-        d = desc_lengths[0] if desc_lengths else 0
-        exp_score = 7.0 if d < 50 else 10.0 if d < 120 else 13.0
-    else:
-        exp_score = 0.0
-    breakdown["Experience"] = round(min(exp_score, 20.0), 1)
-    total += breakdown["Experience"]
-
-    # ---------- EDUCATION (0-10) ----------
-    has_degree = bool((step2.get("degree") or "").strip()) and not _looks_like_garbage((step2.get("degree") or "").strip(), "degree")
-    has_institution = bool((step2.get("institution") or step2.get("school") or "").strip())
-    edu_score = (5.0 if has_degree else 0.0) + (5.0 if has_institution else 0.0)
-    breakdown["Education"] = round(min(edu_score, 10.0), 1)
-    total += breakdown["Education"]
-
-    # ---------- PROJECTS / CONTENT DEPTH (0-10) ----------
-    project_like = sum(1 for d in desc_lengths if d > 50)
-    if project_like >= 3:
-        proj_score = 10.0
-    elif project_like == 2:
-        proj_score = 7.0
-    elif project_like == 1:
-        proj_score = 4.0
-    else:
-        proj_score = 0.0
-    breakdown["Projects"] = round(proj_score, 1)
-    total += breakdown["Projects"]
-
-    # ---------- ATS KEYWORDS (0-10) ----------
-    keywords = ["python", "java", "javascript", "sql", "api", "react", "node", "aws", "docker", "git", "agile", "leadership", "communication", "analysis", "development", "design", "management"]
-    text = (summary + " " + " ".join(str(e.get("description") or "") for e in step3 if isinstance(e, dict))).lower()
-    matches = sum(1 for k in keywords if k in text)
-    ats_score = min(matches * 2.2, 10.0)  # 2.2 per match -> 2.2, 4.4, 6.6, 8.8, 10
-    breakdown["ATS"] = round(ats_score, 1)
-    total += breakdown["ATS"]
-
-    # Final total: round to int for display (51, 52, 53...)
+    breakdown = {
+        "Profile": round(_profile_score(step1), 1),
+        "Summary": round(_summary_quality_score(step1), 1),
+        "Skills": round(_skills_score(step4), 1),
+        "Experience": round(_experience_score(step3), 1),
+        "Education": round(_education_score(step2), 1),
+        "Projects": round(_projects_score(step3), 1),
+        "ATS": round(_ats_keywords_score(step1, step3), 1),
+    }
+    total = sum(breakdown.values())
     final_score = min(max(0, int(round(total))), 100)
     return final_score, breakdown, warnings

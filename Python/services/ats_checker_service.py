@@ -33,6 +33,178 @@ openai_client = None
 if os.getenv("OPENAI_API_KEY"):
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Regex for extracting words (3+ letters) for tokenization/similarity
+WORD_REGEX = r'\b[a-zA-Z]{3,}\b'
+
+# Common stop words for word-overlap fallback
+_STOP_WORDS = frozenset({
+    'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from',
+    'as', 'is', 'are', 'was', 'were', 'been', 'be', 'have', 'has', 'had', 'do', 'does',
+    'did', 'will', 'would', 'should', 'could', 'may', 'might', 'must', 'can', 'this',
+    'that', 'these', 'those', 'a', 'an'
+})
+
+
+def _pick_final_similarity(tfidf_pct: float, overlap_pct: float) -> float:
+    """Choose final similarity from TF-IDF and word-overlap percentages."""
+    if tfidf_pct < 5.0 and overlap_pct > 5.0:
+        return min(overlap_pct * 1.2, 80.0)
+    if tfidf_pct < 0.1:
+        return min(overlap_pct, 80.0)
+    return max(tfidf_pct, overlap_pct * 0.9)
+
+
+def _fallback_ats_suggestions(
+    missing_keywords: List[str],
+    formatting_issues: List[str],
+    default_message: str,
+    *,
+    keyword_prefix: str = "Consider adding these keywords naturally in your experience section:",
+    include_formatting_detail: bool = True
+) -> List[str]:
+    """Build suggestion list when OpenAI is unavailable or errors."""
+    suggestions = []
+    if missing_keywords:
+        top = missing_keywords[:5]
+        suggestions.append(f"{keyword_prefix} {', '.join(top)}")
+    if formatting_issues and include_formatting_detail:
+        if any("table" in issue.lower() for issue in formatting_issues):
+            suggestions.append("Avoid using tables - ATS systems may not parse them correctly")
+        if any("summary" in issue.lower() for issue in formatting_issues):
+            suggestions.append("Add a professional summary section to improve ATS compatibility")
+    if formatting_issues and not include_formatting_detail:
+        suggestions.append("Fix formatting issues detected in your resume")
+    return suggestions if suggestions else [default_message]
+
+
+def _step1_parts(step1: Dict) -> List[str]:
+    """Extract step1 (personal) fields into list of strings for resume text."""
+    out = []
+    if not step1:
+        return out
+    for key in ("name", "title", "summary", "email", "phone", "location"):
+        val = step1.get(key)
+        if val:
+            out.append(val if isinstance(val, str) else str(val))
+    return out
+
+
+def _step4_skills_parts(step4) -> List[str]:
+    """Extract step4 (skills) into list of strings."""
+    out = []
+    if not step4:
+        return out
+    if isinstance(step4, list):
+        skills_list = []
+        for s in step4:
+            if not s:
+                continue
+            if isinstance(s, str):
+                skills_list.append(s)
+            elif isinstance(s, dict):
+                skills_list.append(s.get("name", "") or "")
+        if skills_list:
+            out.append(" ".join(skills_list))
+            out.append("Skills: " + ", ".join(skills_list))
+    else:
+        out.append(str(step4))
+    return out
+
+
+def _step2_education_parts(step2: Dict) -> List[str]:
+    """Extract step2 (education) into list of strings."""
+    out = []
+    if not step2:
+        return out
+    edu_parts = []
+    for key in ("degree", "field"):
+        val = step2.get(key)
+        if val:
+            edu_parts.append(val)
+            out.append(val)
+    inst = step2.get("institution") or step2.get("school")
+    if inst:
+        edu_parts.append(inst)
+        out.append(inst)
+    if edu_parts:
+        out.append(" ".join(edu_parts))
+    return out
+
+
+def _single_experience_parts(exp: Dict) -> List[str]:
+    """Extract one experience entry into list of strings."""
+    out = []
+    job_title = exp.get("jobTitle")
+    employer = exp.get("employer") or exp.get("company")
+    exp_parts = [p for p in (job_title, employer) if p]
+    if job_title:
+        out.append(job_title)
+    if employer:
+        out.append(employer)
+    if exp_parts:
+        out.append(" ".join(exp_parts))
+    if exp.get("description"):
+        out.append(exp["description"])
+    for key in ("startDate", "endDate"):
+        val = exp.get(key)
+        if val is not None:
+            out.append(str(val))
+    return out
+
+
+def _step3_experience_parts(step3: List) -> List[str]:
+    """Extract step3 (experience) into list of strings."""
+    if not step3 or not isinstance(step3, list):
+        return []
+    out = []
+    for exp in step3:
+        if isinstance(exp, dict):
+            out.extend(_single_experience_parts(exp))
+    return out
+
+
+def _step1_languages_parts(step1: Dict) -> List[str]:
+    """Extract languages from step1."""
+    out = []
+    langs = step1.get("languages") if step1 else None
+    if not langs:
+        return out
+    if isinstance(langs, list):
+        out.append(" ".join(langs))
+        out.append("Languages: " + ", ".join(langs))
+    else:
+        out.append(str(langs))
+    return out
+
+
+def _step1_certs_parts(step1: Dict) -> List[str]:
+    """Extract certificates from step1."""
+    out = []
+    certs = (step1.get("certificates") or step1.get("certs")) if step1 else None
+    if not certs:
+        return out
+    if isinstance(certs, list):
+        out.append(" ".join(certs))
+        out.append("Certifications: " + ", ".join(certs))
+    else:
+        out.append(str(certs))
+    return out
+
+
+def _custom_sections_parts(custom_sections: List) -> List[str]:
+    """Extract custom sections into list of strings."""
+    out = []
+    if not custom_sections:
+        return out
+    for section in custom_sections:
+        if not isinstance(section, dict):
+            continue
+        if section.get("name"):
+            out.append(section["name"])
+        if section.get("description"):
+            out.append(section["description"])
+    return out
+
 
 class ATSCheckerService:
     """Service for ATS resume analysis and scoring."""
@@ -57,7 +229,7 @@ class ATSCheckerService:
             resume_text = self._build_resume_text_from_data(resume_data)
             
             # Log the built resume text for debugging
-            ats_logger.info(f"=== RESUME TEXT BUILDING ===")
+            ats_logger.info("=== RESUME TEXT BUILDING ===")
             ats_logger.info(f"Resume text length: {len(resume_text)} characters")
             ats_logger.info(f"Resume text preview (first 500 chars): {resume_text[:500]}")
             ats_logger.info(f"Resume data keys: {list(resume_data.keys())}")
@@ -83,7 +255,7 @@ class ATSCheckerService:
             ats_logger.info(f"Sample JD keywords: {jd_keywords[:20]}")
             
             # Calculate keyword match percentage using TF-IDF cosine similarity
-            ats_logger.info(f"=== CALCULATING KEYWORD SIMILARITY ===")
+            ats_logger.info("=== CALCULATING KEYWORD SIMILARITY ===")
             print(f"[ATS] Calculating keyword similarity - Resume text length: {len(resume_text)}, JD length: {len(job_description)}")
             keyword_match_percent = self._calculate_keyword_similarity(
                 resume_text, job_description
@@ -374,7 +546,7 @@ class ATSCheckerService:
         """Extract keywords from text using NLP."""
         if not nlp:
             # Fallback: simple word extraction
-            words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
+            words = re.findall(WORD_REGEX, text.lower())
             return list(set(words))
         
         doc = nlp(text.lower())
@@ -446,14 +618,9 @@ class ATSCheckerService:
                 ats_logger.info(f"TF-IDF cosine similarity: {tfidf_similarity_percent:.2f}% (raw: {similarity:.4f})")
                 
                 # ALWAYS calculate word overlap as a fallback/verification method
-                resume_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', resume_text.lower()))
-                jd_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', jd_text.lower()))
-                
-                # Remove common stop words
-                stop_words = {'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'a', 'an'}
-                resume_words = resume_words - stop_words
-                jd_words = jd_words - stop_words
-                
+                resume_words = set(re.findall(WORD_REGEX, resume_text.lower())) - _STOP_WORDS
+                jd_words = set(re.findall(WORD_REGEX, jd_text.lower())) - _STOP_WORDS
+
                 overlap_percent = 0.0
                 if jd_words:
                     overlap = len(resume_words & jd_words)
@@ -462,36 +629,16 @@ class ATSCheckerService:
                     ats_logger.info(f"Resume unique words: {len(resume_words)}, JD unique words: {len(jd_words)}")
                     if overlap > 0:
                         ats_logger.info(f"Sample overlapping words: {list(resume_words & jd_words)[:10]}")
-                
-                # Use the HIGHER of TF-IDF or word overlap, weighted towards word overlap if TF-IDF is suspiciously low
-                # If TF-IDF is very low (< 5%) but word overlap shows matches, trust word overlap more
-                if tfidf_similarity_percent < 5.0 and overlap_percent > 5.0:
-                    # TF-IDF seems broken, use word overlap with a boost
-                    similarity_percent = min(overlap_percent * 1.2, 80.0)  # Boost by 20% but cap at 80%
-                    ats_logger.info(f"TF-IDF suspiciously low ({tfidf_similarity_percent:.2f}%), using boosted word overlap: {similarity_percent:.2f}%")
-                    print(f"[ATS] TF-IDF low ({tfidf_similarity_percent:.2f}%), using boosted overlap: {similarity_percent:.2f}%")
-                elif tfidf_similarity_percent < 0.1:
-                    # TF-IDF returned near-zero, use word overlap directly
-                    similarity_percent = min(overlap_percent, 80.0)
-                    ats_logger.info(f"TF-IDF near-zero ({tfidf_similarity_percent:.2f}%), using word overlap: {similarity_percent:.2f}%")
-                    print(f"[ATS] TF-IDF near-zero, using overlap: {similarity_percent:.2f}%")
-                else:
-                    # TF-IDF seems reasonable, use the maximum of both methods (prefer higher score)
-                    similarity_percent = max(tfidf_similarity_percent, overlap_percent * 0.9)  # Use max, but weight overlap slightly lower
-                    ats_logger.info(f"Combined similarity: TF-IDF={tfidf_similarity_percent:.2f}%, Overlap={overlap_percent:.2f}%, Final={similarity_percent:.2f}%")
-                    print(f"[ATS] Combined: TF-IDF={tfidf_similarity_percent:.2f}%, Overlap={overlap_percent:.2f}%, Final={similarity_percent:.2f}%")
-                
+
+                similarity_percent = _pick_final_similarity(tfidf_similarity_percent, overlap_percent)
+                ats_logger.info(f"Combined similarity: TF-IDF={tfidf_similarity_percent:.2f}%, Overlap={overlap_percent:.2f}%, Final={similarity_percent:.2f}%")
+                print(f"[ATS] Combined: TF-IDF={tfidf_similarity_percent:.2f}%, Overlap={overlap_percent:.2f}%, Final={similarity_percent:.2f}%")
                 return similarity_percent
                 
             except ValueError as ve:
-                # Handle case where no features are extracted
                 ats_logger.error(f"ValueError in TF-IDF calculation: {ve}")
-                # Fallback to simple word overlap
-                resume_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', resume_text.lower()))
-                jd_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', jd_text.lower()))
-                stop_words = {'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were'}
-                resume_words = resume_words - stop_words
-                jd_words = jd_words - stop_words
+                resume_words = set(re.findall(WORD_REGEX, resume_text.lower())) - _STOP_WORDS
+                jd_words = set(re.findall(WORD_REGEX, jd_text.lower())) - _STOP_WORDS
                 if jd_words:
                     overlap_percent = (len(resume_words & jd_words) / len(jd_words)) * 100
                     ats_logger.info(f"Using fallback word overlap: {overlap_percent:.2f}%")
@@ -514,16 +661,16 @@ class ATSCheckerService:
                     if tables:
                         issues.append("Tables detected - may not be parsed correctly by ATS")
                         break
-        except:
+        except Exception:
             pass
-        
+
         # Check for images (if text is very short relative to PDF size)
         try:
             with pdfplumber.open(pdf_path) as pdf:
                 total_chars = sum(len(page.extract_text() or "") for page in pdf.pages)
                 if total_chars < 500 and len(pdf.pages) > 0:
                     issues.append("Possible image-based PDF - text may not be extractable")
-        except:
+        except Exception:
             pass
         
         # Check for special characters that might cause issues
@@ -562,8 +709,7 @@ class ATSCheckerService:
         Deduct points for formatting issues.
         """
         score = 20.0  # Start with full points
-        max_score = 20.0
-        
+
         # Deduct points for each issue
         penalty_per_issue = 5.0
         
@@ -652,22 +798,11 @@ class ATSCheckerService:
         Only uses OpenAI for suggestions, NOT for scoring.
         """
         if not openai_client:
-            # Fallback suggestions if OpenAI is not available
-            suggestions = []
-            if missing_keywords:
-                top_missing = missing_keywords[:5]
-                suggestions.append(
-                    f"Consider adding these keywords naturally in your experience section: {', '.join(top_missing)}"
-                )
-            if formatting_issues:
-                if any("table" in issue.lower() for issue in formatting_issues):
-                    suggestions.append("Avoid using tables - ATS systems may not parse them correctly")
-                if any("summary" in issue.lower() for issue in formatting_issues):
-                    suggestions.append("Add a professional summary section to improve ATS compatibility")
-            return suggestions if suggestions else ["Review your resume for ATS compatibility"]
-        
+            return _fallback_ats_suggestions(
+                missing_keywords, formatting_issues, "Review your resume for ATS compatibility"
+            )
+
         try:
-            # Prepare prompt for OpenAI
             prompt = f"""You are an ATS (Applicant Tracking System) expert. Analyze this resume against the job description and provide 3-5 specific, actionable improvement suggestions.
 
 RESUME TEXT (first 2000 chars):
@@ -697,138 +832,36 @@ Format as a simple list, one suggestion per line, no numbering."""
                 max_tokens=300,
                 temperature=0.7
             )
-            
+
             suggestions_text = response.choices[0].message.content.strip()
             suggestions = [s.strip() for s in suggestions_text.split('\n') if s.strip()]
-            
-            return suggestions[:5]  # Return max 5 suggestions
-            
+            return suggestions[:5]
+
         except Exception as e:
             ats_logger.error(f"Error getting AI suggestions: {e}")
-            # Return fallback suggestions
-            suggestions = []
-            if missing_keywords:
-                top_missing = missing_keywords[:5]
-                suggestions.append(
-                    f"Add these keywords naturally: {', '.join(top_missing)}"
-                )
-            if formatting_issues:
-                suggestions.append("Fix formatting issues detected in your resume")
-            return suggestions if suggestions else ["Review your resume for better ATS compatibility"]
+            return _fallback_ats_suggestions(
+                missing_keywords,
+                formatting_issues,
+                "Review your resume for better ATS compatibility",
+                keyword_prefix="Add these keywords naturally:",
+                include_formatting_detail=False
+            )
     
     def _build_resume_text_from_data(self, resume_data: Dict) -> str:
         """Build resume text from structured data."""
+        step1 = resume_data.get("step1", {}) or {}
         text_parts = []
-        
-        # Step 1: Basic Info
-        step1 = resume_data.get("step1", {})
-        if step1:
-            if step1.get("name"):
-                text_parts.append(step1['name'])  # Add name without label for better keyword matching
-            if step1.get("title"):
-                text_parts.append(step1['title'])  # Add title without label
-            if step1.get("summary"):
-                text_parts.append(step1['summary'])  # Summary is important for keywords
-            if step1.get("email"):
-                text_parts.append(step1['email'])
-            if step1.get("phone"):
-                text_parts.append(step1['phone'])
-            if step1.get("location"):
-                text_parts.append(step1['location'])
-        
-        # Skills - Very important for keyword matching
-        step4 = resume_data.get("step4", [])
-        if step4:
-            if isinstance(step4, list):
-                skills_list = []
-                for s in step4:
-                    if s:
-                        if isinstance(s, str):
-                            skills_list.append(s)
-                        elif isinstance(s, dict):
-                            skills_list.append(s.get("name", ""))
-                if skills_list:
-                    # Add skills multiple times for better matching (with and without label)
-                    text_parts.append(" ".join(skills_list))
-                    text_parts.append("Skills: " + ", ".join(skills_list))
-            else:
-                text_parts.append(str(step4))
-        
-        # Education
-        step2 = resume_data.get("step2", {})
-        if step2:
-            edu_parts = []
-            if step2.get("degree"):
-                edu_parts.append(step2["degree"])
-                text_parts.append(step2["degree"])  # Add separately for better matching
-            if step2.get("field"):
-                edu_parts.append(step2["field"])
-                text_parts.append(step2["field"])  # Add separately
-            if step2.get("institution") or step2.get("school"):
-                inst = step2.get("institution") or step2.get("school")
-                edu_parts.append(inst)
-                text_parts.append(inst)  # Add separately
-            if edu_parts:
-                text_parts.append(" ".join(edu_parts))  # Also add combined
-        
-        # Experience - Critical for keyword matching
-        step3 = resume_data.get("step3", [])
-        if step3 and isinstance(step3, list):
-            for exp in step3:
-                if not isinstance(exp, dict):
-                    continue
-                exp_parts = []
-                if exp.get("jobTitle"):
-                    text_parts.append(exp["jobTitle"])  # Add job title separately
-                    exp_parts.append(exp["jobTitle"])
-                if exp.get("employer") or exp.get("company"):
-                    employer = exp.get("employer") or exp.get("company")
-                    text_parts.append(employer)  # Add employer separately
-                    exp_parts.append(employer)
-                if exp_parts:
-                    text_parts.append(" ".join(exp_parts))  # Combined
-                if exp.get("description"):
-                    text_parts.append(exp["description"])  # Description often has keywords
-                if exp.get("startDate"):
-                    text_parts.append(str(exp["startDate"]))
-                if exp.get("endDate"):
-                    text_parts.append(str(exp["endDate"]))
-        
-        # Languages
-        if step1.get("languages"):
-            langs = step1["languages"]
-            if isinstance(langs, list):
-                text_parts.append(" ".join(langs))  # Add without label
-                text_parts.append("Languages: " + ", ".join(langs))
-            else:
-                text_parts.append(str(langs))
-        
-        # Certifications
-        if step1.get("certificates") or step1.get("certs"):
-            certs = step1.get("certificates") or step1.get("certs")
-            if isinstance(certs, list):
-                text_parts.append(" ".join(certs))  # Add without label
-                text_parts.append("Certifications: " + ", ".join(certs))
-            else:
-                text_parts.append(str(certs))
-        
-        # Custom Sections
-        custom_sections = resume_data.get("customSections", [])
-        if custom_sections:
-            for section in custom_sections:
-                if isinstance(section, dict):
-                    if section.get("name"):
-                        text_parts.append(section["name"])  # Add name separately
-                    if section.get("description"):
-                        text_parts.append(section["description"])  # Add description
-        
-        # Join all parts with spaces for better keyword matching
+        text_parts.extend(_step1_parts(step1))
+        text_parts.extend(_step4_skills_parts(resume_data.get("step4", [])))
+        text_parts.extend(_step2_education_parts(resume_data.get("step2", {}) or {}))
+        text_parts.extend(_step3_experience_parts(resume_data.get("step3", [])))
+        text_parts.extend(_step1_languages_parts(step1))
+        text_parts.extend(_step1_certs_parts(step1))
+        text_parts.extend(_custom_sections_parts(resume_data.get("customSections", [])))
+
         resume_text = " ".join(text_parts)
-        
-        # Log the built text for debugging
         ats_logger.info(f"Built resume text length: {len(resume_text)} characters")
         ats_logger.info(f"Resume text preview: {resume_text[:300]}...")
-        
         return resume_text
     
     def _detect_sections_from_data(self, resume_data: Dict) -> Dict[str, bool]:

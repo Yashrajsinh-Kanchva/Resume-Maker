@@ -22,7 +22,7 @@ def validate_password(password: str):
     if not re.search(r"[a-z]", password):
         return False, "Password must contain at least one lowercase letter"
 
-    if not re.search(r"[0-9]", password):
+    if not re.search(r"[\d]", password):
         return False, "Password must contain at least one digit"
 
     if not re.search(r"[$@#]", password):

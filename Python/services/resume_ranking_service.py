@@ -4,7 +4,7 @@ from services.resume_service import ResumeService
 
 resume_service = ResumeService()
 
-def rank_resumes(resumes, user_email):
+def rank_resumes(resumes):
     pq = PriorityQueue()
 
     for resume_meta in resumes:

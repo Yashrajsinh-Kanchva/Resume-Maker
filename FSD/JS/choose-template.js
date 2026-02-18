@@ -235,7 +235,7 @@ document.querySelectorAll(".use-btn").forEach((btn, index) => {
     localStorage.removeItem("skills");
 
     // Go to Step-1
-    window.location.href = "step-1.html";
+    globalThis.location.href = "step-1.html";
   });
 });
 

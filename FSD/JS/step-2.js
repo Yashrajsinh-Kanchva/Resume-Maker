@@ -93,13 +93,11 @@ const selectedTemplate =
 })();
 
 /* ================== LOAD TEMPLATE HTML ================== */
-fetch(TEMPLATES[selectedTemplate].html)
-  .then(res => res.text())
-  .then(html => {
-    $("resumePreview").innerHTML = html;
-    loadHeader();
-    renderExperiences();
-  });
+const templateRes = await fetch(TEMPLATES[selectedTemplate].html);
+const html = await templateRes.text();
+$("resumePreview").innerHTML = html;
+loadHeader();
+renderExperiences();
 
 /* ================== LOAD HEADER FROM STEP-1 ================== */
 function loadHeader() {
@@ -188,23 +186,21 @@ function renderExperiences() {
   // Clear existing content
   box.innerHTML = "";
 
-  // Check if this is academic-yellow template (has experience-list class)
-  const isAcademicYellow = box.classList.contains("experience-list");
-  
   list.forEach(exp => {
+    const citySep = exp.city && exp.country ? ", " : "";
+    const dateSep = exp.startDate && exp.endDate ? " – " : "";
+    const locationPart = exp.city || exp.country
+      ? `<small>${exp.city || ""}${citySep}${exp.country || ""}</small><br>`
+      : "";
+    const datePart = exp.startDate || exp.endDate
+      ? `<small>${exp.startDate || ""}${dateSep}${exp.endDate || ""}</small>`
+      : "";
     const div = document.createElement("div");
-    
-    // Use appropriate class based on template
-    if (isAcademicYellow) {
-      div.className = "mb-3";
-    } else {
-      div.className = "mb-3";
-    }
-    
+    div.className = "mb-3";
     div.innerHTML = `
       <strong>${exp.jobTitle}${exp.employer ? " – " + exp.employer : ""}</strong><br>
-      ${exp.city || exp.country ? `<small>${exp.city || ""}${exp.city && exp.country ? ", " : ""}${exp.country || ""}</small><br>` : ""}
-      ${exp.startDate || exp.endDate ? `<small>${exp.startDate || ""}${exp.startDate && exp.endDate ? " – " : ""}${exp.endDate || ""}</small>` : ""}
+      ${locationPart}
+      ${datePart}
       <ul>
         ${(exp.description || "")
           .split("\n")
@@ -236,9 +232,10 @@ function renderExperiences() {
     sectionTitle.style.visibility = "visible";
   }
   
-  console.log("Experience rendered:", list.length, "items", "Template:", isAcademicYellow ? "academic-yellow" : "other");
-  console.log("Section display:", window.getComputedStyle(section).display);
-  console.log("Content box display:", contentBox ? window.getComputedStyle(contentBox).display : "N/A");
+  const templateKind = box.classList.contains("experience-list") ? "academic-yellow" : "other";
+  console.log("Experience rendered:", list.length, "items", "Template:", templateKind);
+  console.log("Section display:", globalThis.getComputedStyle(section).display);
+  console.log("Content box display:", contentBox ? globalThis.getComputedStyle(contentBox).display : "N/A");
 }
 
 /* ================== CLEAR FORM ================== */

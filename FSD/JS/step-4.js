@@ -93,23 +93,16 @@ const selectedTemplate =
 })();
 
 /* ================== LOAD TEMPLATE HTML ================== */
-fetch(TEMPLATES[selectedTemplate].html)
-  .then(res => res.text())
-  .then(html => {
-    $("resumePreview").innerHTML = html;
-
-    loadHeader();
-    loadEducation();
-    loadExperience();
-    loadSkills(); // ✅ stable now
-    loadCustomSections(); // ✅ Load custom sections
-    
-    // ✅ Add event listeners for skill buttons
-    bindSkillButtons();
-    
-    // ✅ Load custom sections list
-    renderCustomSectionsList();
-  });
+const templateRes = await fetch(TEMPLATES[selectedTemplate].html);
+const html = await templateRes.text();
+$("resumePreview").innerHTML = html;
+loadHeader();
+loadEducation();
+loadExperience();
+loadSkills();
+loadCustomSections();
+bindSkillButtons();
+renderCustomSectionsList();
 
 /* ================== HEADER (STEP-1) ================== */
 function loadHeader() {
@@ -140,6 +133,10 @@ function loadEducation() {
     ? `Expected ${formatMonth(d.month)}`
     : formatMonth(d.month);
 
+  const detailsList = d.details?.length
+    ? "<ul>" + d.details.map(x => "<li>" + x + "</li>").join("") + "</ul>"
+    : "";
+
   section.innerHTML = `
     <h3>EDUCATION</h3>
     <ul>
@@ -147,11 +144,7 @@ function loadEducation() {
         <strong>${d.degree} in ${d.field}</strong><br>
         ${d.school} | ${d.location}<br>
         <em>${dateText}</em>
-        ${
-          d.details?.length
-            ? `<ul>${d.details.map(x => `<li>${x}</li>`).join("")}</ul>`
-            : ""
-        }
+        ${detailsList}
       </li>
     </ul>
   `;
@@ -182,12 +175,20 @@ function loadExperience() {
   const isAcademicYellow = box.classList.contains("experience-list");
 
   list.forEach(exp => {
+    const citySep = exp.city && exp.country ? ", " : "";
+    const dateSep = exp.startDate && exp.endDate ? " – " : "";
+    const locationPart = exp.city || exp.country
+      ? `<small>${exp.city || ""}${citySep}${exp.country || ""}</small><br>`
+      : "";
+    const datePart = exp.startDate || exp.endDate
+      ? `<small>${exp.startDate || ""}${dateSep}${exp.endDate || ""}</small>`
+      : "";
     const div = document.createElement("div");
     div.className = isAcademicYellow ? "mb-3" : "exp-item mb-3";
     div.innerHTML = `
       <strong>${exp.jobTitle}${exp.employer ? " – " + exp.employer : ""}</strong><br>
-      ${exp.city || exp.country ? `<small>${exp.city || ""}${exp.city && exp.country ? ", " : ""}${exp.country || ""}</small><br>` : ""}
-      ${exp.startDate || exp.endDate ? `<small>${exp.startDate || ""}${exp.startDate && exp.endDate ? " – " : ""}${exp.endDate || ""}</small>` : ""}
+      ${locationPart}
+      ${datePart}
       <ul>
         ${(exp.description || "")
           .split("\n")
@@ -220,8 +221,8 @@ function loadExperience() {
   }
   
   console.log("Experience loaded:", list.length, "items", "Template:", isAcademicYellow ? "academic-yellow" : "other");
-  console.log("Section display:", window.getComputedStyle(section).display);
-  console.log("Content box display:", contentBox ? window.getComputedStyle(contentBox).display : "N/A");
+  console.log("Section display:", globalThis.getComputedStyle(section).display);
+  console.log("Content box display:", contentBox ? globalThis.getComputedStyle(contentBox).display : "N/A");
 }
 
 /* ================== SKILLS (STEP-4) ================== */
@@ -395,13 +396,13 @@ function saveCustomSection() {
   }
 
   const sections = getCustomSections();
-  
-  if (editingCustomSectionIndex !== null) {
-    // Edit existing section
-    sections[editingCustomSectionIndex] = { name, description };
-  } else {
+
+  if (editingCustomSectionIndex === null) {
     // Add new section
     sections.push({ name, description });
+  } else {
+    // Edit existing section
+    sections[editingCustomSectionIndex] = { name, description };
   }
 
   saveCustomSections(sections);
@@ -508,9 +509,10 @@ function loadCustomSections() {
     sectionEl.id = `customSection${index}`;
     
     // Format description - handle newlines
+    const listItems = section.description.split("\n").filter(Boolean).map(d => "<li>" + escapeHtml(d) + "</li>").join("");
     const descHtml = section.description.includes("\n")
-      ? `<ul>${section.description.split("\n").filter(Boolean).map(d => `<li>${escapeHtml(d)}</li>`).join("")}</ul>`
-      : `<p style="white-space: pre-wrap;">${escapeHtml(section.description)}</p>`;
+      ? "<ul>" + listItems + "</ul>"
+      : "<p style=\"white-space: pre-wrap;\">" + escapeHtml(section.description) + "</p>";
     
     // Check if template uses wrapper structure (like academic-yellow)
     if (useWrapper && wrapperClass) {
@@ -534,7 +536,7 @@ function loadCustomSections() {
     const experienceSection = rightPanel.querySelector("#previewExperienceSection");
     if (experienceSection) {
       // Insert after the experience section
-      experienceSection.insertAdjacentElement("afterend", sectionEl);
+      experienceSection.after(sectionEl);
     } else {
       // If no experience section, append to the end
       rightPanel.appendChild(sectionEl);
@@ -613,7 +615,7 @@ function finishResume() {
   })
     .then(res => res.json())
     .then(r => {
-      if (r.success) window.location.href = "/documents.html";
+      if (r.success) globalThis.location.href = "/documents.html";
       else alert(r.message || "Save failed");
     });
 }

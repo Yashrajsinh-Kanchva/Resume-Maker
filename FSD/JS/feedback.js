@@ -1,21 +1,18 @@
 /* ===============================
    AUTO LOAD USER DATA FROM DATABASE
 ================================ */
-async function loadUserInfo() {
-  try {
-    const res = await fetch("/api/users/me", {
-      credentials: "include"
-    });
+try {
+  const res = await fetch("/api/users/me", {
+    credentials: "include"
+  });
 
-    if (!res.ok) return;
-
+  if (res.ok) {
     const data = await res.json();
 
     if (data.authenticated && data.user) {
-      // Populate name and email from database
       const nameField = document.getElementById("fbName");
       const emailField = document.getElementById("fbEmail");
-      
+
       if (nameField && data.user.name) {
         nameField.value = data.user.name || "";
       }
@@ -23,13 +20,10 @@ async function loadUserInfo() {
         emailField.value = data.user.email || "";
       }
     }
-  } catch (err) {
-    console.error("User fetch failed", err);
   }
+} catch (err) {
+  console.error("User fetch failed", err);
 }
-
-// Load user info when page loads
-loadUserInfo();
 
 document.getElementById("feedbackForm").addEventListener("submit", async e => {
   e.preventDefault();

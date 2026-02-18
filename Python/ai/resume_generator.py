@@ -59,4 +59,4 @@ def generate_ai_resume(user_data):
     except json.JSONDecodeError as e:
         print("JSON PARSE ERROR:", e)
         print("RAW CONTENT WAS:\n", content)
-        raise Exception("AI did not return valid JSON")
+        raise ValueError("AI did not return valid JSON") from e

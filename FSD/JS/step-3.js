@@ -93,15 +93,12 @@ const selectedTemplate =
 })();
 
 /* ================== LOAD TEMPLATE HTML ================== */
-fetch(TEMPLATES[selectedTemplate].html)
-  .then(res => res.text())
-  .then(html => {
-    $("resumePreview").innerHTML = html;
-
-    loadHeader();
-    loadExperience();
-    restoreEducation();
-  });
+const templateRes = await fetch(TEMPLATES[selectedTemplate].html);
+const html = await templateRes.text();
+$("resumePreview").innerHTML = html;
+loadHeader();
+loadExperience();
+restoreEducation();
 
 /* ================== LOAD HEADER (STEP-1) ================== */
 function loadHeader() {
@@ -142,12 +139,20 @@ function loadExperience() {
   const isAcademicYellow = box.classList.contains("experience-list");
 
   list.forEach(exp => {
+    const citySep = exp.city && exp.country ? ", " : "";
+    const dateSep = exp.startDate && exp.endDate ? " – " : "";
+    const locationPart = exp.city || exp.country
+      ? `<small>${exp.city || ""}${citySep}${exp.country || ""}</small><br>`
+      : "";
+    const datePart = exp.startDate || exp.endDate
+      ? `<small>${exp.startDate || ""}${dateSep}${exp.endDate || ""}</small>`
+      : "";
     const div = document.createElement("div");
     div.className = isAcademicYellow ? "mb-3" : "exp-item mb-3";
     div.innerHTML = `
       <strong>${exp.jobTitle}${exp.employer ? " – " + exp.employer : ""}</strong><br>
-      ${exp.city || exp.country ? `<small>${exp.city || ""}${exp.city && exp.country ? ", " : ""}${exp.country || ""}</small><br>` : ""}
-      ${exp.startDate || exp.endDate ? `<small>${exp.startDate || ""}${exp.startDate && exp.endDate ? " – " : ""}${exp.endDate || ""}</small>` : ""}
+      ${locationPart}
+      ${datePart}
       <ul>
         ${(exp.description || "")
           .split("\n")
@@ -180,8 +185,8 @@ function loadExperience() {
   }
   
   console.log("Experience loaded:", list.length, "items", "Template:", isAcademicYellow ? "academic-yellow" : "other");
-  console.log("Section display:", window.getComputedStyle(section).display);
-  console.log("Content box display:", contentBox ? window.getComputedStyle(contentBox).display : "N/A");
+  console.log("Section display:", globalThis.getComputedStyle(section).display);
+  console.log("Content box display:", contentBox ? globalThis.getComputedStyle(contentBox).display : "N/A");
 }
 
 /* ================== EDUCATION (STEP-3) ================== */
@@ -254,6 +259,10 @@ function renderEducation(d) {
     ? `Expected ${formatMonth(d.month)}`
     : formatMonth(d.month);
 
+  const detailsList = d.details?.length
+    ? "<ul>" + d.details.map(x => "<li>" + x + "</li>").join("") + "</ul>"
+    : "";
+
   section.innerHTML = `
     <h3>EDUCATION</h3>
     <ul>
@@ -261,11 +270,7 @@ function renderEducation(d) {
         <strong>${d.degree} in ${d.field}</strong><br>
         ${d.school} | ${d.location}<br>
         <em>${dateText}</em>
-        ${
-          d.details && d.details.length
-            ? `<ul>${d.details.map(x => `<li>${x}</li>`).join("")}</ul>`
-            : ""
-        }
+        ${detailsList}
       </li>
     </ul>
   `;
@@ -298,7 +303,7 @@ function formatMonth(v) {
 /* ================== NAV ================== */
 function goToStep4() {
   saveEducation();
-  window.location.href = "step-4.html";
+  globalThis.location.href = "step-4.html";
 }
 function saveExperiences(list) {
   localStorage.setItem("experiences", JSON.stringify(list));

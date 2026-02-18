@@ -13,7 +13,7 @@
 
     <script>
         function loginWithGoogle() {
-            window.location.href = "http://localhost:5000/api/auth/google/login";
+            globalThis.location.href = "http://localhost:5000/api/auth/google/login";
         }
     </script>
 </head>
@@ -48,8 +48,9 @@
 
             <form id="loginForm">
 
-                <label class="fw-bold small text-green">EMAIL ADDRESS</label>
+                <label for="loginEmail" class="fw-bold small text-green">EMAIL ADDRESS</label>
                 <input
+                    id="loginEmail"
                     type="email"
                     name="email"
                     class="form-control mb-3 dark-input"
@@ -57,7 +58,7 @@
                     required
                 >
 
-                <label class="fw-bold small text-green">PASSWORD</label>
+                <label for="loginPassword" class="fw-bold small text-green">PASSWORD</label>
                 <div class="position-relative mb-2">
                     <input
                         type="password"
@@ -67,9 +68,14 @@
                         placeholder="Password"
                         required
                     >
-                    <span class="show-password text-green" onclick="togglePassword('loginPassword', this)">
-                        <i class="fa-solid fa-eye"></i>
-                    </span>
+                    <button
+                        type="button"
+                        class="show-password text-green"
+                        onclick="togglePassword('loginPassword', this)"
+                        aria-label="Toggle password visibility"
+                    >
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    </button>
                 </div>
 
                 <div class="d-flex justify-content-between mb-4 small">
@@ -96,6 +102,7 @@
                 >
                     <img
                         src="https://cdn-icons-png.flaticon.com/512/300/300221.png"
+                        alt="Google"
                         width="18"
                     >
                     Sign in with Google
@@ -134,7 +141,7 @@
 
                 // ✅ Redirect to Flask dashboard
                 setTimeout(() => {
-                    window.location.href = "http://localhost:5000/dashboard";
+                    globalThis.location.href = "http://localhost:5000/dashboard";
                 }, 1000);
 
             } else {

@@ -14,7 +14,7 @@ async function loadUserProfile() {
 
     if (!response.ok) {
       if (response.status === 401) {
-        window.location.href = "/loginPage.html";
+        globalThis.location.href = "/loginPage.html";
         return;
       }
       throw new Error("Failed to load profile");
@@ -110,55 +110,51 @@ document.getElementById("profileForm")?.addEventListener("submit", async functio
   }
 });
 
-// Refresh navbar with updated user data
+function getNavbarUserLoader() {
+  if (typeof loadNavbarUser === "function") return loadNavbarUser;
+  if (typeof globalThis.loadNavbarUser === "function") return globalThis.loadNavbarUser;
+  return null;
+}
+
+function setNavbarUsername(name) {
+  const usernameEl = document.getElementById("username");
+  if (!usernameEl || !name) return;
+  usernameEl.textContent = name;
+  console.log("✅ Navbar username updated to:", name);
+}
+
+function setNavbarUsernameFromForm() {
+  const usernameEl = document.getElementById("username");
+  const userNameInput = document.getElementById("userName");
+  if (!usernameEl || !userNameInput) return false;
+  const name = userNameInput.value.trim();
+  if (!name) return false;
+  usernameEl.textContent = name;
+  console.log("✅ Navbar username updated from form value:", name);
+  return true;
+}
+
 async function refreshNavbar() {
   try {
-    // Wait a bit to ensure session is saved on server
     await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Method 1: Try to call loadNavbarUser if it exists (most reliable)
-    if (typeof loadNavbarUser === 'function') {
-      await loadNavbarUser();
-      // Double-check after loadNavbarUser
-      await new Promise(resolve => setTimeout(resolve, 100));
-    } else if (typeof window.loadNavbarUser === 'function') {
-      await window.loadNavbarUser();
+
+    const loader = getNavbarUserLoader();
+    if (loader) {
+      await loader();
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
-    // Method 2: Also directly fetch and update username element
+
     const userResponse = await fetch("/api/users/me", { credentials: "include" });
     if (userResponse.ok) {
       const userData = await userResponse.json();
-      if (userData.user && userData.user.name) {
-        const usernameEl = document.getElementById("username");
-        if (usernameEl) {
-          usernameEl.textContent = userData.user.name;
-          console.log("✅ Navbar username updated to:", userData.user.name);
-        }
-      }
+      const name = userData?.user?.name;
+      if (name) setNavbarUsername(name);
     }
-    
-    // Method 3: Fallback - use form value if API fails
-    const userNameInput = document.getElementById("userName");
-    const usernameEl = document.getElementById("username");
-    if (usernameEl && userNameInput && userNameInput.value.trim()) {
-      // Only update if element exists and form has value
-      const newName = userNameInput.value.trim();
-      if (newName) {
-        usernameEl.textContent = newName;
-        console.log("✅ Navbar username updated from form value:", newName);
-      }
-    }
+
+    setNavbarUsernameFromForm();
   } catch (error) {
     console.error("Error refreshing navbar:", error);
-    // Final fallback: Use form value
-    const userNameInput = document.getElementById("userName");
-    const usernameEl = document.getElementById("username");
-    if (usernameEl && userNameInput) {
-      usernameEl.textContent = userNameInput.value.trim();
-      console.log("✅ Navbar username updated from form (fallback):", userNameInput.value.trim());
-    }
+    setNavbarUsernameFromForm();
   }
 }
 

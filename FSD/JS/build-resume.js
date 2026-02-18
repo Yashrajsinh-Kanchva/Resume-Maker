@@ -93,16 +93,13 @@ const selectedTemplate =
 })();
 
 /* ================== LOAD TEMPLATE HTML ================== */
-fetch(TEMPLATES[selectedTemplate].html)
-  .then(res => res.text())
-  .then(html => {
-    $("resumePreview").innerHTML = html;
-
-    loadStep1();
-    loadEducation();
-    loadExperience();
-    loadSkills(); // ✅ stable now
-  });
+const templateRes = await fetch(TEMPLATES[selectedTemplate].html);
+const templateHtml = await templateRes.text();
+$("resumePreview").innerHTML = templateHtml;
+loadStep1();
+loadEducation();
+loadExperience();
+loadSkills();
 
 /* ================== STEP 1 : HEADER ================== */
 function loadStep1() {
@@ -133,6 +130,11 @@ function loadEducation() {
     ? `Expected ${formatMonth(d.month)}`
     : formatMonth(d.month);
 
+  const detailsListItems = d.details?.length
+    ? d.details.map(x => "<li>" + x + "</li>").join("")
+    : "";
+  const detailsHtml = detailsListItems ? "<ul>" + detailsListItems + "</ul>" : "";
+
   section.innerHTML = `
     <h3>EDUCATION</h3>
     <ul>
@@ -140,11 +142,7 @@ function loadEducation() {
         <strong>${d.degree} in ${d.field}</strong><br>
         ${d.school} | ${d.location}<br>
         <em>${dateText}</em>
-        ${
-          d.details?.length
-            ? `<ul>${d.details.map(x => `<li>${x}</li>`).join("")}</ul>`
-            : ""
-        }
+        ${detailsHtml}
       </li>
     </ul>
   `;

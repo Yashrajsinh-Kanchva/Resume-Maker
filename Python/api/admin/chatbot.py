@@ -163,35 +163,45 @@ def _rule_analytics_summary(_q: str) -> str | None:
     return "".join(parts).strip()
 
 
+def _asks_how_many(q: str) -> bool:
+    return "how many" in q or re.search(r"\bhow\s+ma", q) is not None
+
+
+def _asks_total(q: str) -> bool:
+    return "total" in q or "count" in q or "registered" in q
+
+
+def _has_feedback(q: str) -> bool:
+    return (
+        re.search(r"feed\s*back", q) is not None
+        or (("feed" in q) and ("back" in q))
+        or "feedback" in q
+        or "feedb" in q
+    )
+
+
+def _has_user(q: str) -> bool:
+    return "user" in q or "users" in q or "usr" in q
+
+
+def _has_resume(q: str) -> bool:
+    return "resume" in q or "resumes" in q or "cv" in q
+
+
 def _match_rule(q: str) -> str | None:
     feedback_by_name = _rule_feedbacks_by_name(q)
     if feedback_by_name is not None:
         return feedback_by_name
 
-    # Be tolerant of small typos (e.g. "how mant", "feedbackk")
-    asks_how_many = ("how many" in q) or (re.search(r"\bhow\s+ma", q) is not None)
-    asks_total = ("total" in q) or ("count" in q) or ("registered" in q)
-    # also match "feed back", "feed backs", etc.
-    has_feedback = (
-        (re.search(r"feed\s*back", q) is not None)
-        or (("feed" in q) and ("back" in q))
-        or ("feedback" in q)
-        or ("feedb" in q)
-    )
-    has_user = ("user" in q) or ("users" in q) or ("usr" in q)
-    has_resume = ("resume" in q) or ("resumes" in q) or ("cv" in q)
-
-    if has_user and (asks_how_many or asks_total):
+    if _has_user(q) and (_asks_how_many(q) or _asks_total(q)):
         return _rule_total_users(q)
-    if has_resume and (asks_how_many or ("total" in q) or ("exist" in q) or ("count" in q)):
+    if _has_resume(q) and (_asks_how_many(q) or _asks_total(q) or "exist" in q):
         return _rule_total_resumes(q)
-    if has_feedback and (asks_how_many or ("total" in q) or ("count" in q)):
+    if _has_feedback(q) and (_asks_how_many(q) or _asks_total(q)):
         return _rule_total_feedbacks(q)
     if "average" in q and "rating" in q:
         return _rule_avg_rating(q)
-    if "analytics" in q and "summary" in q:
-        return _rule_analytics_summary(q)
-    if "admin" in q and "summary" in q:
+    if ("analytics" in q or "admin" in q) and "summary" in q:
         return _rule_analytics_summary(q)
     return None
 
@@ -212,14 +222,8 @@ def _openai_answer(question: str) -> str:
         return "I couldn't process that. Try asking about user counts, resume counts, or feedback ratings."
 
 
-@chatbot_bp.route("/chatbot", methods=["POST"])
-def chatbot():
-    # Always print a trace so we can debug live.
-    try:
-        print(f"[admin_chatbot] HIT build={CHATBOT_BUILD} ip={request.remote_addr} ua={request.headers.get('User-Agent','')[:80]!r}")
-    except Exception:
-        pass
-
+def _check_auth():
+    """Return None if authorized, else (response, status, mode) for early return."""
     admin_email = (request.headers.get("X-Admin-Email") or "").strip()
     if not admin_email:
         try:
@@ -233,33 +237,48 @@ def chatbot():
         except Exception:
             pass
         return _respond("Access denied. Not an admin.", status=403, mode="auth")
+    return None
+
+
+def _validate_question(question: str) -> tuple[str | None, tuple | None]:
+    """Return (sanitized, None) if valid, else (None, (msg, status, mode)) for error response."""
+    sanitized = _sanitize(question)
+    if not sanitized:
+        return None, ("Please ask a non-empty question.", 400, "validation")
+    if len(question.strip()) > MAX_QUESTION_LENGTH:
+        return None, ("Question is too long.", 400, "validation")
+    return sanitized, None
+
+
+def _get_answer_and_mode(sanitized: str) -> tuple[str, str]:
+    """Compute answer text and mode (version, rule, or openai)."""
+    if sanitized in {"version", "/version", "chatbot version", "debug version"}:
+        return f"admin_chatbot build: {CHATBOT_BUILD}", "version"
+    answer = _match_rule(sanitized)
+    if answer is not None:
+        return answer, "rule"
+    return _openai_answer(sanitized), "openai"
+
+
+@chatbot_bp.route("/chatbot", methods=["POST"])
+def chatbot():
+    try:
+        print(f"[admin_chatbot] HIT build={CHATBOT_BUILD} ip={request.remote_addr} ua={request.headers.get('User-Agent','')[:80]!r}")
+    except Exception:
+        pass
+
+    auth_response = _check_auth()
+    if auth_response is not None:
+        return auth_response
 
     data = request.get_json(silent=True) or {}
-    question = data.get("question", "")
-    sanitized = _sanitize(question)
+    sanitized, validation_error = _validate_question(data.get("question", ""))
+    if validation_error is not None:
+        return _respond(validation_error[0], status=validation_error[1], mode=validation_error[2])
 
-    if not sanitized:
-        return _respond("Please ask a non-empty question.", status=400, mode="validation")
-
-    if len(question.strip()) > MAX_QUESTION_LENGTH:
-        return _respond("Question is too long.", status=400, mode="validation")
-
-    answer: str | None
-    mode: str
-
-    if sanitized in {"version", "/version", "chatbot version", "debug version"}:
-        answer = f"admin_chatbot build: {CHATBOT_BUILD}"
-        mode = "version"
-    else:
-        answer = _match_rule(sanitized)
-        mode = "rule" if answer is not None else "openai"
-        if answer is None:
-            answer = _openai_answer(sanitized)
-
-    # Minimal server-side trace for debugging mismatches
+    answer, mode = _get_answer_and_mode(sanitized)
     try:
         print(f"[admin_chatbot] OK build={CHATBOT_BUILD} mode={mode} q={sanitized!r}")
     except Exception:
         pass
-
     return _respond(answer, status=200, mode=mode)

@@ -27,8 +27,7 @@ def google_login():
 # ================= GOOGLE CALLBACK =================
 @google_bp.route("/google/callback")
 def google_callback():
-    token = oauth.google.authorize_access_token()
-
+    oauth.google.authorize_access_token()
     user_info = oauth.google.get("userinfo").json()
 
     session["user"] = {

@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="../CSS/documents.css">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="../JS/navbar-loader.js"></script>
+  <script type="module" src="../JS/navbar-loader.js"></script>
 
 </head>
 <body>
@@ -79,7 +79,7 @@
                 <form id="atsCheckForm">
                   <!-- Saved Resume Selection -->
                   <div class="mb-4" id="savedResumeSection">
-                    <label class="form-label text-white mb-2">
+                    <label for="savedResumeSelect" class="form-label text-white mb-2">
                       <i class="bi bi-file-earmark-text me-2"></i>Select Resume
                     </label>
                     <select id="savedResumeSelect" class="form-select" required>
@@ -89,7 +89,7 @@
                   </div>
 
                   <div class="mb-4">
-                    <label class="form-label text-white mb-2">
+                    <label for="jobDescription" class="form-label text-white mb-2">
                       <i class="bi bi-file-text me-2"></i>Job Description
                     </label>
                     <textarea 
@@ -129,14 +129,9 @@
                     <h5 class="text-white mb-3">
                       <i class="bi bi-key me-2"></i>Keyword Match
                     </h5>
-                    <div class="progress mb-2" style="height: 25px;">
-                      <div 
-                        id="keywordMatchBar" 
-                        class="progress-bar progress-bar-striped progress-bar-animated" 
-                        role="progressbar" 
-                        style="width: 0%">
-                        <span id="keywordMatchPercent">0%</span>
-                      </div>
+                    <div class="progress mb-2 position-relative" style="height: 25px;">
+                      <progress id="keywordMatchBar" class="progress-bar progress-bar-striped progress-bar-animated w-100 h-100" value="0" max="100"></progress>
+                      <span id="keywordMatchPercent" class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center small">0%</span>
                     </div>
                   </div>
 
@@ -230,7 +225,7 @@
                 <textarea id="aiSummary" class="form-control mb-3" placeholder="Professional Summary" rows="3"></textarea>
 
                 <div class="mb-3">
-                  <label class="form-label text-white">Job Description (optional)</label>
+                  <label for="aiJD" class="form-label text-white">Job Description (optional)</label>
                   <textarea id="aiJD" class="form-control" rows="2" placeholder="Paste or edit job description"></textarea>
                 </div>
 
@@ -243,7 +238,7 @@
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label text-white">Experience Level</label>
+                  <label for="aiExperience" class="form-label text-white">Experience Level</label>
                   <select id="aiExperience" class="form-select">
                     <option value="fresher">Fresher</option>
                     <option value="experienced">Experienced</option>
@@ -255,15 +250,15 @@
                   <button class="btn btn-outline-success btn-sm mt-3 w-100" onclick="addExperienceField()">+ Add Experience</button>
                 </div>
                 <div class="mb-3" id="skillsField">
-                  <label class="form-label text-white">Skills (one per line)</label>
+                  <label for="aiSkills" class="form-label text-white">Skills (one per line)</label>
                   <textarea id="aiSkills" class="form-control" rows="3" placeholder="JavaScript&#10;Python&#10;React"></textarea>
                 </div>
                 <div class="mb-2">
-                  <label class="form-label text-white small">Languages (one per line)</label>
+                  <label for="aiLanguages" class="form-label text-white small">Languages (one per line)</label>
                   <textarea id="aiLanguages" class="form-control" rows="1" placeholder="English"></textarea>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label text-white small">Certificates (one per line)</label>
+                  <label for="aiCertificates" class="form-label text-white small">Certificates (one per line)</label>
                   <textarea id="aiCertificates" class="form-control" rows="1" placeholder="AWS Certified"></textarea>
                 </div>
               </div>
@@ -342,13 +337,6 @@
       </button>
     </div>
 
-
-<!--    <div class="download-bar text-center">-->
-<!--      <button class="btn btn-success px-5 py-2 fw-bold" onclick="downloadResumePDF()">-->
-<!--        <i class="bi bi-download me-2"></i> Download PDF-->
-<!--      </button>-->
-<!--    </div>-->
-
   </div>
 </div>
 
@@ -369,7 +357,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../JS/documents.js"></script>
+<script type="module" src="../JS/documents.js"></script>
 
 </body>
 </html>

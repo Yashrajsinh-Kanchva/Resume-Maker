@@ -40,7 +40,7 @@
 
             <form id="signupForm">
 
-                <label class="fw-bold small text-green">FULL NAME</label>
+                <label for="signupName" class="fw-bold small text-green">FULL NAME</label>
                 <input 
                     type="text" 
                     id="signupName"
@@ -50,7 +50,7 @@
                     required
                 >
 
-                <label class="fw-bold small text-green">EMAIL ADDRESS</label>
+                <label for="signupEmail" class="fw-bold small text-green">EMAIL ADDRESS</label>
                 <input 
                     type="email" 
                     id="signupEmail"
@@ -60,7 +60,7 @@
                     required
                 >
 
-                <label class="fw-bold small text-green">PASSWORD</label>
+                <label for="signupPassword" class="fw-bold small text-green">PASSWORD</label>
                 <div class="position-relative mb-3">
                     <input
                         type="password"
@@ -71,12 +71,17 @@
                         required
                     >
 
-                    <span class="show-password text-green" onclick="togglePassword('signupPassword', this)">
-                        <i class="fa-solid fa-eye"></i>
-                    </span>
+                    <button
+                        type="button"
+                        class="show-password text-green"
+                        onclick="togglePassword('signupPassword', this)"
+                        aria-label="Toggle password visibility"
+                    >
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    </button>
                 </div>
 
-                <label class="fw-bold small text-green">CONFIRM PASSWORD</label>
+                <label for="confirmPassword" class="fw-bold small text-green">CONFIRM PASSWORD</label>
                 <div class="position-relative mb-3">
                     <input
                         type="password"
@@ -87,9 +92,14 @@
                         required
                     >
 
-                    <span class="show-password text-green" onclick="togglePassword('confirmPassword', this)">
-                        <i class="fa-solid fa-eye"></i>
-                    </span>
+                    <button
+                        type="button"
+                        class="show-password text-green"
+                        onclick="togglePassword('confirmPassword', this)"
+                        aria-label="Toggle password visibility"
+                    >
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                    </button>
                 </div>
 
                 <div class="d-flex align-items-center mb-3 text-light-gray">
@@ -177,7 +187,7 @@
 
                 // Redirect to login page after successful signup
                 setTimeout(() => {
-                    window.location.href = "dashboard.html";
+                    globalThis.location.href = "dashboard.html";
                 }, 1500);
 
             } else {

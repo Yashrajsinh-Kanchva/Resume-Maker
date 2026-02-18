@@ -175,7 +175,7 @@ def check_resume_from_saved():
         result = ats_service.check_resume_from_data(resume_data, job_description.strip())
         
         # Use same score as card/preview (resume_score) so ATS checker matches everywhere
-        resume_score, breakdown, warnings = calculate_resume_score(resume)
+        resume_score, _, _ = calculate_resume_score(resume)
         result["resume_score"] = resume_score
         result["ats_score"] = resume_score  # Unify: display same score as cards and preview
         

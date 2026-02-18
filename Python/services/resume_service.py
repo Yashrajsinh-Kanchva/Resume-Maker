@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from repo.resume_repo import ResumeRepo
 from utils.crypto_utils import CryptoUtils
 from bson import ObjectId
@@ -60,7 +60,7 @@ class ResumeService:
             }
             
             template_display = template_names.get(template, template or "Resume")
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             date_str = now.strftime("%b %d, %Y")
             time_str = now.strftime("%I:%M %p")
             title = f"{template_display} - {date_str} {time_str}"
@@ -70,7 +70,7 @@ class ResumeService:
             "title": title,
             "template": template,
             "data": payload["data"],
-            "created_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc)
         }
 
         self.repo.create(resume)

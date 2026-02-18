@@ -46,6 +46,8 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
+ADMIN_API_PREFIX = "/api/admin"
+
 
 def create_app(config_class=Config):
     """
@@ -95,26 +97,18 @@ def create_app(config_class=Config):
 def _validate_required_config(app):
     """
     Validate that all required configuration values are present.
-    
-    Args:
-        app: Flask application instance
-        
-    Raises:
-        RuntimeError: If any required configuration is missing
+    Only SECRET_KEY is required for startup. Google OAuth is optional (login disabled if missing).
     """
-    required_configs = {
-        "SECRET_KEY": "SECRET_KEY missing in .env",
-        "GOOGLE_CLIENT_ID": "GOOGLE_CLIENT_ID missing in .env",
-        "GOOGLE_CLIENT_SECRET": "GOOGLE_CLIENT_SECRET missing in .env"
-    }
+    if not app.config.get("SECRET_KEY"):
+        logger.error("SECRET_KEY missing in .env")
+        raise RuntimeError("SECRET_KEY missing in .env")
 
-    for config_key, error_message in required_configs.items():
-        if not app.config.get(config_key):
-            logger.error(error_message)
-            raise RuntimeError(error_message)
-
-    # Set secret key for sessions and OAuth
     app.secret_key = app.config["SECRET_KEY"]
+
+    if not app.config.get("GOOGLE_CLIENT_ID") or not app.config.get("GOOGLE_CLIENT_SECRET"):
+        logger.warning(
+            "GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing in .env. Google login will be disabled."
+        )
 
 
 def _configure_session_security(app):
@@ -230,8 +224,8 @@ def _register_blueprints(app):
     app.register_blueprint(feedback_bp)
 
     # Admin endpoints
-    app.register_blueprint(admin_bp, url_prefix="/api/admin")
-    app.register_blueprint(admin_data_bp, url_prefix="/api/admin")
-    app.register_blueprint(admin_analytics_bp, url_prefix="/api/admin")
-    app.register_blueprint(admin_user_action_bp, url_prefix="/api/admin")
-    app.register_blueprint(chatbot_bp, url_prefix="/api/admin")
+    app.register_blueprint(admin_bp, url_prefix=ADMIN_API_PREFIX)
+    app.register_blueprint(admin_data_bp, url_prefix=ADMIN_API_PREFIX)
+    app.register_blueprint(admin_analytics_bp, url_prefix=ADMIN_API_PREFIX)
+    app.register_blueprint(admin_user_action_bp, url_prefix=ADMIN_API_PREFIX)
+    app.register_blueprint(chatbot_bp, url_prefix=ADMIN_API_PREFIX)

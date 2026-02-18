@@ -75,8 +75,8 @@ def analytics_page(api_base: str):
 
         fig.update_traces(line_width=3)
         fig.update_layout(
-            xaxis=dict(tickformat="%d %b %Y"),
-            yaxis=dict(dtick=1),
+            xaxis={"tickformat": "%d %b %Y"},
+            yaxis={"dtick": 1},
             height=400
         )
 

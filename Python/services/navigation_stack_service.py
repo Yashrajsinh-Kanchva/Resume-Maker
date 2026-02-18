@@ -7,7 +7,7 @@ def open_view(view):
     print("STACK PUSH →", _nav_stack.items)
 
 def go_back():
-    popped = _nav_stack.pop()
+    _nav_stack.pop()
     print("STACK POP →", _nav_stack.items)
     return _nav_stack.peek()
 

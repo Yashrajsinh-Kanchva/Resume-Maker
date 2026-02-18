@@ -5,9 +5,9 @@ function goBack() {
     .then(res => res.json())
     .then(data => {
       if (data.current === "preview") {
-        window.location.href = "/preview.html";
+        globalThis.location.href = "/preview.html";
       } else {
-        window.location.href = "/documents.html";
+        globalThis.location.href = "/documents.html";
       }
     });
 }

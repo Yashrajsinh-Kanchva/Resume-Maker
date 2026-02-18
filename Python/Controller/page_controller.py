@@ -2,6 +2,7 @@ from flask import Blueprint, send_from_directory, session, redirect, url_for
 from config.app_config import HTML_DIR
 
 page_bp = Blueprint("pages", __name__)
+LOGIN_PAGE_ENDPOINT = "pages.login_page"
 
 # ---------------- LANDING PAGE ----------------
 @page_bp.route("/")
@@ -26,7 +27,7 @@ def signup_page():
 @page_bp.route("/login-success.html")
 def login_success_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "login-success.html")
 
 
@@ -35,7 +36,7 @@ def login_success_page():
 @page_bp.route("/dashboard.html")
 def dashboard_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "dashboard.html")
 
 
@@ -43,7 +44,7 @@ def dashboard_page():
 @page_bp.route("/contact.html")
 def contact_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "contact.html")
 
 
@@ -51,7 +52,7 @@ def contact_page():
 @page_bp.route("/settings.html")
 def settings_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "settings.html")
 
 
@@ -59,7 +60,7 @@ def settings_page():
 @page_bp.route("/documents.html")
 def documents_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "documents.html")
 
 
@@ -67,7 +68,7 @@ def documents_page():
 @page_bp.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("pages.login_page"))
+    return redirect(url_for(LOGIN_PAGE_ENDPOINT))
 
 # ---------------- RESET PASSWORD ----------------
 @page_bp.route("/reset-password/<token>")
@@ -91,14 +92,14 @@ def forgot_password_page():
 @page_bp.route("/choose-template.html")
 def choose_template_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "choose-template.html")
 
 # ---------------- STEP 1 ----------------
 @page_bp.route("/step-1.html")
 def step_1_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "step-1.html")
 
 
@@ -106,7 +107,7 @@ def step_1_page():
 @page_bp.route("/step-2.html")
 def step_2_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "step-2.html")
 
 
@@ -114,7 +115,7 @@ def step_2_page():
 @page_bp.route("/step-3.html")
 def step_3_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "step-3.html")
 
 
@@ -122,14 +123,14 @@ def step_3_page():
 @page_bp.route("/step-4.html")
 def step_4_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "step-4.html")
 
 # ---------------- BUILD RESUME ----------------
 @page_bp.route("/build-resume.html")
 def build_resume_page():
     if "user" not in session:
-        return redirect(url_for("pages.login_page"))
+        return redirect(url_for(LOGIN_PAGE_ENDPOINT))
     return send_from_directory(HTML_DIR, "build-resume.html")
 
 @page_bp.route("/navbar.html")

@@ -134,8 +134,8 @@
 }
 
 .text-danger-custom:hover {
-    background: rgba(255, 77, 77, 0.1) !important;
-    color: #ff4d4d !important;
+    background: #ffcdd2 !important;
+    color: #b71c1c !important;
 }
 
 /* Navbar Toggler (Hamburger) */
