@@ -29,5 +29,11 @@ jobs:
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          args: >
+            -Dsonar.organization=mihir021
+            -Dsonar.projectKey=mihir021_resume-maker-
+            -Dsonar.sources=.
+            -Dsonar.python.version=3.11
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
