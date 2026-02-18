@@ -1,20 +1,57 @@
+"""
+Logging Utility Module
+
+This module provides a custom logging handler that rotates log files based on
+line count rather than file size. It includes utilities for setting up loggers
+and managing log file rotation.
+
+Features:
+- Custom LineRotatingFileHandler for line-based rotation
+- Automatic log rotation when files exceed MAX_LINES
+- Backup of last 100 lines before rotation
+- Manual rotation utilities for maintenance
+"""
+
 import logging
 import os
 
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# Maximum lines before rotation
+# Maximum lines before automatic rotation
 MAX_LINES = 500
 
 
 class LineRotatingFileHandler(logging.FileHandler):
     """
-    Custom file handler that rotates logs based on line count instead of file size.
-    When log file exceeds MAX_LINES, it clears the file and starts fresh.
+    Custom logging handler that rotates log files based on line count.
+    
+    When a log file exceeds the specified maximum lines, it automatically:
+    1. Backs up the last 100 lines to a .old file
+    2. Clears the main log file
+    3. Continues logging from a fresh file
+    
+    This provides better control over log file sizes compared to size-based
+    rotation, especially for applications with variable log line lengths.
+    
+    Attributes:
+        max_lines: Maximum number of lines before rotation
+        line_count: Current line count in the log file
+        _check_interval: Number of writes before checking file size
+        _write_count: Counter for writes since last check
     """
     
     def __init__(self, filename, max_lines=MAX_LINES, mode='a', encoding=None, delay=False):
+        """
+        Initialize the line-rotating file handler.
+        
+        Args:
+            filename: Path to the log file
+            max_lines: Maximum lines before rotation (default: MAX_LINES)
+            mode: File open mode (default: 'a' for append)
+            encoding: File encoding (default: None, uses system default)
+            delay: Delay file opening until first emit (default: False)
+        """
         self.max_lines = max_lines
         self.line_count = 0
         self._check_interval = 10  # Check file size every 10 writes for efficiency
@@ -106,30 +143,48 @@ class LineRotatingFileHandler(logging.FileHandler):
             self._write_count = 0  # Reset check counter
             
         except Exception as e:
-            # If rotation fails, try to reopen anyway
+            # If rotation fails, try to reopen anyway to prevent logging failure
             try:
                 self.stream = self._open()
             except Exception:
                 pass
-            print(f"Log rotation error: {e}")
+            # Use logging instead of print for error reporting
+            logging.getLogger(__name__).error(f"Log rotation error for {log_path}: {e}", exc_info=True)
 
 
 def setup_logger(name, log_file, level=logging.INFO):
+    """
+    Set up a logger with line-rotating file handler.
+    
+    Creates a logger instance with a custom handler that automatically rotates
+    log files when they exceed MAX_LINES. Prevents duplicate handlers if
+    called multiple times with the same name.
+    
+    Args:
+        name: Logger name (typically module name)
+        log_file: Name of the log file (e.g., 'admin.log')
+        level: Logging level (default: logging.INFO)
+        
+    Returns:
+        logging.Logger: Configured logger instance
+    """
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
+    # Prevent duplicate handlers if logger already exists
     if logger.handlers:
-        return logger  # prevent duplicate handlers
+        return logger
 
     log_path = os.path.join(LOG_DIR, log_file)
     
-    # Use custom LineRotatingFileHandler instead of RotatingFileHandler
+    # Use custom LineRotatingFileHandler for line-based rotation
     handler = LineRotatingFileHandler(
         log_path,
         max_lines=MAX_LINES,
         encoding='utf-8'
     )
 
+    # Configure log format: timestamp | level | logger_name | message
     formatter = logging.Formatter(
         "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
     )
@@ -182,7 +237,7 @@ def rotate_log_file(log_file, max_lines=MAX_LINES):
         
         return False
     except Exception as e:
-        print(f"Error rotating log file {log_file}: {e}")
+        logging.getLogger(__name__).error(f"Error rotating log file {log_file}: {e}", exc_info=True)
         return False
 
 
@@ -207,6 +262,6 @@ def rotate_all_logs(max_lines=MAX_LINES):
             if filename.endswith('.log') and not filename.endswith('.old'):
                 results[filename] = rotate_log_file(filename, max_lines)
     except Exception as e:
-        print(f"Error rotating logs: {e}")
+        logging.getLogger(__name__).error(f"Error rotating logs: {e}", exc_info=True)
     
     return results

@@ -8,6 +8,11 @@
     --input-bg: #111;
 }
 
+html {
+    overflow: hidden;
+    height: 100%;
+}
+
 body {
     margin: 0;
     font-family: "Poppins", sans-serif;
@@ -15,11 +20,13 @@ body {
     background: radial-gradient(circle at top right, #0a1f0a 0%, #000000 100%);
     color: var(--text-white);
     min-height: 100vh;
+    height: 100%;
     padding: 12px;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    overflow-y: hidden;
 }
 
 /* Background Atmospheric Glow */
@@ -176,6 +183,13 @@ body {
     background: rgba(8, 8, 8, 0.95);
     min-width: 0;
     overflow-y: auto;
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.right-panel::-webkit-scrollbar {
+    display: none;
 }
 
 .right-panel h2 {
@@ -307,6 +321,7 @@ body {
     body {
         align-items: flex-start;
         padding: 12px 10px 24px;
+        overflow-y: hidden;
     }
 
     .main-container {
