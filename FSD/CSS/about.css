@@ -1,0 +1,70 @@
+/* ================= ABOUT PAGE STYLING ================= */
+
+.about-section {
+    padding: 100px 0;
+}
+
+/* HERO */
+.about-hero {
+    padding: 120px 0 80px;
+    background: radial-gradient(circle at center, rgba(0,255,102,0.08), transparent 60%);
+}
+
+.about-hero h1 {
+    letter-spacing: -1px;
+}
+
+/* STORY SECTION */
+.about-story {
+    border-top: 1px solid #1a1a1a;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+/* WHAT WE BUILT */
+.about-built {
+    background: #0a0a0a;
+    border-radius: 20px;
+    padding: 60px;
+    margin-top: 40px;
+}
+
+/* Accent Line */
+.about-line {
+    height: 4px;
+    width: 70px;
+    background: var(--neon-green);
+    box-shadow: 0 0 15px var(--neon-green);
+    margin-bottom: 20px;
+}
+
+/* Tech Section */
+.about-tech {
+    background: linear-gradient(to bottom, transparent, rgba(0,255,102,0.05));
+    padding: 80px 0;
+}
+
+/* TEAM */
+.team-card {
+    padding: 40px 30px;
+    border: 1px solid #1f1f1f;
+    border-radius: 20px;
+    transition: 0.3s ease;
+    background: rgba(15,15,15,0.6);
+    backdrop-filter: blur(10px);
+}
+
+.team-card:hover {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 25px rgba(0,255,102,0.15);
+    transform: translateY(-5px);
+}
+
+.team-links a {
+    font-weight: 500;
+    color: var(--neon-green);
+    transition: 0.3s;
+}
+
+.team-links a:hover {
+    text-shadow: 0 0 8px var(--neon-green);
+}

@@ -147,25 +147,21 @@ def signup():
     password = request.form.get("password")
     confirm = request.form.get("confirm_password")
 
-    # ---------- Basic field check ----------
     if not all([name, email, password, confirm]):
         return jsonify({"success": False, "message": "All fields are required"}), 400
 
-    # ---------- Email validation ----------
     if not is_valid_gmail(email):
         return jsonify({
             "success": False,
             "message": "Email must be a valid @gmail.com address"
         }), 400
 
-    # ---------- Password match ----------
     if password != confirm:
         return jsonify({
             "success": False,
             "message": "Passwords do not match"
         }), 400
 
-    # ---------- Password rules ----------
     valid, message = validate_password(password)
     if not valid:
         return jsonify({
@@ -173,7 +169,6 @@ def signup():
             "message": message
         }), 400
 
-    # ---------- DTO validation ----------
     dto = UserSignupDTO(name, email, password)
     if not dto.is_valid():
         return jsonify({
@@ -181,9 +176,23 @@ def signup():
             "message": "Invalid signup data"
         }), 400
 
-    # ---------- Service call ----------
     result = user_service.create_user(dto)
-    return jsonify(result), 201 if result.get("success") else 400
+
+    # ✅ AUTO LOGIN AFTER SUCCESSFUL SIGNUP
+    if result.get("success"):
+        session["user"] = {
+            "name": name,
+            "email": email,
+            "provider": "local"
+        }
+        session.modified = True
+
+        return jsonify({
+            "success": True,
+            "message": "Account created successfully!"
+        }), 201
+
+    return jsonify(result), 400
 
 # ---------------- LOGIN (EMAIL / PASSWORD) ----------------
 @user_bp.route("/login", methods=["POST"])

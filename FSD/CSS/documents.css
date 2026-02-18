@@ -658,3 +658,20 @@ textarea::placeholder {
   box-shadow: 0 6px 20px rgba(255,68,68,0.5);
 }
 
+/*Footer */
+.footer-dark {
+    background-color: #000;
+    border-top: 1px solid #222;
+    color: #777;
+    padding: 40px 0;
+}
+
+.footer-dark a {
+    color: #aaa;
+    transition: 0.3s;
+}
+
+.footer-dark a:hover {
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green);
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>About Us | ResumeMaker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Fonts & Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Same CSS as Dashboard -->
+    <link rel="stylesheet" href="../CSS/navbar.css">
+    <link rel="stylesheet" href="../CSS/dashboard.css">
+    <link rel="stylesheet" href="../CSS/about.css">
+    <script src="../JS/navbar-loader.js"></script>
+</head>
+<body>
+
+<div id="navbar-container"></div>
+
+<main class="mt-5 pt-5">
+
+    <!-- HERO -->
+    <section class="about-hero text-center">
+        <div class="container">
+            <h1 class="display-1 fw-bold">
+                About <span class="text-primary">ResumeMaker</span>
+            </h1>
+
+            <p class="lead text-muted col-lg-6 mx-auto mt-4">
+                A smart resume platform built to help professionals
+                stand out in a competitive job market.
+            </p>
+        </div>
+    </section>
+
+
+    <!-- STORY -->
+    <section class="about-section about-story">
+        <div class="container col-lg-8 mx-auto text-center">
+
+            <h2 class="fw-bold text-white mb-4">Our Story</h2>
+
+            <p class="text-muted fs-5">
+                ResumeMaker began as a vision to bridge the gap between
+                traditional resume building and modern recruitment systems.
+            </p>
+
+            <p class="text-muted fs-5 mt-4">
+                We observed that many capable candidates were rejected
+                not because of lack of skills — but because their resumes
+                failed Applicant Tracking Systems (ATS).
+            </p>
+
+        </div>
+    </section>
+
+
+    <!-- WHAT WE BUILT -->
+    <section class="about-section">
+        <div class="container about-built">
+
+            <div class="row align-items-center">
+
+                <div class="col-md-6">
+                    <div class="about-line"></div>
+                    <h2 class="fw-bold text-white mb-4">What We Built</h2>
+
+                    <p class="text-muted fs-5">
+                        ResumeMaker integrates AI resume generation,
+                        ATS keyword analysis, secure authentication,
+                        dynamic dashboards, and downloadable templates —
+                        all within a seamless user experience.
+                    </p>
+                </div>
+
+                <div class="col-md-6">
+                    <h5 class="text-white mb-3">Core Capabilities</h5>
+
+                    <p class="text-muted fs-5">
+                        AI Resume Content Generation<br>
+                        ATS Score & Keyword Matching<br>
+                        Modern Resume Templates<br>
+                        Resume Quality Analytics<br>
+                        Secure User Dashboard
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- TECHNOLOGY -->
+    <section class="about-tech text-center">
+        <div class="container col-lg-8 mx-auto">
+
+            <h2 class="fw-bold text-white mb-4">Technology</h2>
+
+            <p class="text-muted fs-5">
+                Built using HTML, CSS, Bootstrap, and JavaScript on the frontend,
+                powered by Python (Flask) backend with REST APIs,
+                session-based authentication, and OpenAI API integration
+                for intelligent resume analysis and generation.
+            </p>
+
+        </div>
+    </section>
+
+
+    <!-- TEAM -->
+    <section class="about-section text-center">
+        <div class="container">
+
+            <h2 class="fw-bold text-white mb-5">The Team</h2>
+
+            <div class="row justify-content-center g-5">
+
+                <div class="col-md-5">
+                    <div class="team-card">
+                        <h4 class="text-primary">Yashrajsinh Kanchva</h4>
+                        <p class="text-muted">
+                            Full-Stack Developer specializing in AI integration, modern frontend experiences, and scalable backend architecture
+                        </p>
+
+                        <div class="team-links mt-3">
+                            <a href="https://github.com/Yashrajsinh-Kanchva" target="_blank" class="me-4">
+                                GitHub
+                            </a>
+                            <a href="https://www.linkedin.com/in/yashrajsinh-kanchva" target="_blank">
+                                LinkedIn
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-5">
+                    <div class="team-card">
+                        <h4 class="text-primary">Mihir Rathod</h4>
+                        <p class="text-muted">
+                            Backend Developer specializing in system logic,
+                            performance optimization, and clean architecture.
+                        </p>
+
+                        <div class="team-links mt-3">
+                            <a href="https://github.com/mihir021" target="_blank" class="me-4">
+                                GitHub
+                            </a>
+                            <a href="https://www.linkedin.com/in/rathodmihir" target="_blank">
+                                LinkedIn
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<!-- SAME FOOTER AS DASHBOARD -->
+<footer class="footer-dark text-center">
+    <div class="container">
+        <div class="footer-links mb-4">
+            <a href="about.html" class="text-decoration-none mx-3">About Us</a>
+            <a href="contact.html" class="text-decoration-none mx-3">Contact Us</a>
+            <a href="#" class="text-decoration-none mx-3">FAQ's</a>
+            <a href="terms.html" class="text-decoration-none mx-3">Terms & Conditions</a>
+        </div>
+
+        <p class="mb-0 small text-muted">
+            <i class="bi bi-c-circle"></i> 2026 ResumeMaker. All rights reserved.
+        </p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* Fade animation like dashboard */
+const sections = document.querySelectorAll(".fade-section");
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add("show");
+  });
+}, { threshold: 0.15 });
+
+sections.forEach(sec => observer.observe(sec));
+</script>
+
+</body>
+</html>

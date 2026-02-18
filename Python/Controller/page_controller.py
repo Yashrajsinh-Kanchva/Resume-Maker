@@ -139,3 +139,7 @@ def navbar_file():
 @page_bp.route("/feedback.html")
 def feedback():
     return send_from_directory(HTML_DIR,"feedback.html")
+
+@page_bp.route("/about.html")
+def about_page():
+    return send_from_directory(HTML_DIR, "about.html")

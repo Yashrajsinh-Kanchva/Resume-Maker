@@ -236,18 +236,6 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--neon-green);
     text-shadow: 0 0 5px var(--neon-green);
 }
-
-.social-icons i {
-    cursor: pointer;
-    transition: 0.3s;
-    color: #fff;
-}
-
-.social-icons i:hover {
-    color: var(--neon-green);
-    transform: translateY(-3px);
-}
-
 /* ================= ANIMATIONS ================= */
 .fade-section {
     opacity: 0;

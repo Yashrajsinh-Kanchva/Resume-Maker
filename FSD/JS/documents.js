@@ -1749,3 +1749,14 @@ function displayATSResults(data) {
   }
 }
 
+// Auto open ATS modal if redirected from dashboard
+document.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get("openATS") === "true") {
+    const modal = document.getElementById("atsCheckModal");
+    if (modal) {
+      bootstrap.Modal.getOrCreateInstance(modal).show();
+    }
+  }
+});
