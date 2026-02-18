@@ -73,3 +73,23 @@ body {
     height: 2rem;
     border-width: 0.2em;
 }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    body {
+        padding: 16px;
+        overflow-y: auto;
+    }
+
+    .success-card {
+        padding: 40px 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    body { padding: 12px; }
+
+    .success-card {
+        padding: 32px 20px;
+    }
+}

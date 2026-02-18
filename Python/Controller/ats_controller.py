@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, session
 from werkzeug.utils import secure_filename
 from services.ats_checker_service import ATSCheckerService
 from services.resume_service import ResumeService
+from services.resume_score_service import calculate_resume_score
 from utils.logger import setup_logger
 from bson import ObjectId
 
@@ -173,8 +174,13 @@ def check_resume_from_saved():
         # Process ATS check using resume data
         result = ats_service.check_resume_from_data(resume_data, job_description.strip())
         
+        # Use same score as card/preview (resume_score) so ATS checker matches everywhere
+        resume_score, breakdown, warnings = calculate_resume_score(resume)
+        result["resume_score"] = resume_score
+        result["ats_score"] = resume_score  # Unify: display same score as cards and preview
+        
         # Log the result before returning
-        ats_controller_logger.info(f"ATS check result: ats_score={result.get('ats_score')}, keyword_match={result.get('keyword_match_percent')}")
+        ats_controller_logger.info(f"ATS check result: ats_score={result.get('ats_score')}, resume_score={resume_score}, keyword_match={result.get('keyword_match_percent')}")
         
         # Check if there was an error in processing
         if "error" in result:

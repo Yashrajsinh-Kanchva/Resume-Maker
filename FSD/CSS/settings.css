@@ -229,3 +229,21 @@ body {
         margin-bottom: 10px;
     }
 }
+
+@media (max-width: 480px) {
+    .settings-main {
+        padding: 70px 12px 24px;
+    }
+
+    .card-header-custom {
+        padding: 16px 20px;
+    }
+
+    .card-body-custom {
+        padding: 16px;
+    }
+
+    .page-header h2 {
+        font-size: 1.35rem;
+    }
+}

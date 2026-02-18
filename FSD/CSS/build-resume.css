@@ -66,6 +66,77 @@ body {
   max-width: 900px;
 }
 
+/* ================= RESPONSIVE ================= */
+@media (max-width: 991px) {
+  .build-wrapper {
+    flex-direction: column;
+  }
+
+  .build-sidebar {
+    width: 100%;
+    padding: 16px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .build-sidebar h3 {
+    width: 100%;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .build-sidebar .primary-btn,
+  .build-sidebar .ghost-btn {
+    flex: 1;
+    min-width: 140px;
+    margin-bottom: 0;
+  }
+
+  .build-preview {
+    padding: 24px 20px;
+  }
+
+  #resumePreview {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .build-sidebar {
+    padding: 14px 16px;
+  }
+
+  .build-sidebar .primary-btn,
+  .build-sidebar .ghost-btn {
+    min-width: 120px;
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .build-preview {
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .build-sidebar {
+    flex-direction: column;
+  }
+
+  .build-sidebar .primary-btn,
+  .build-sidebar .ghost-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .build-preview {
+    padding: 16px 12px;
+  }
+}
+
 /* ================= PRINT FIX (CORRECT) ================= */
 @media print {
 

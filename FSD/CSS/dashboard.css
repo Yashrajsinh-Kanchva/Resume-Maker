@@ -223,8 +223,13 @@ h1, h2, h3, h4, h5, h6 {
 .footer-dark {
     background-color: #000;
     border-top: 1px solid #222;
-    color: #777;
+    color: var(--text-muted);
     padding: 40px 0;
+}
+
+.footer-dark p,
+.footer-dark .text-muted {
+    color: var(--text-muted) !important;
 }
 
 .footer-dark a {
@@ -246,4 +251,71 @@ h1, h2, h3, h4, h5, h6 {
 .fade-section.show {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* RESPONSIVE */
+@media (max-width: 991px) {
+    body {
+        padding-top: 70px;
+    }
+
+    .bannerHead {
+        font-size: 2.25rem;
+    }
+
+    .bannerDescription {
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding-top: 70px;
+    }
+
+    .bannerHead {
+        font-size: 1.85rem;
+    }
+
+    .banner-box {
+        padding: 16px 0;
+    }
+
+    .bannerImg img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .quote-card {
+        padding: 20px 16px;
+    }
+
+    .quote-icon {
+        font-size: 40px;
+    }
+
+    .resume-score-card {
+        margin: 24px auto;
+        padding: 20px 16px;
+    }
+
+    .score-circle {
+        width: 100px;
+        height: 100px;
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .bannerHead {
+        font-size: 1.5rem;
+    }
+
+    .hired-sec p {
+        font-size: 1rem;
+    }
+
+    .quote-card {
+        padding: 16px 12px;
+    }
 }

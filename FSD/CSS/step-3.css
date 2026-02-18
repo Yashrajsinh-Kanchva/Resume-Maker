@@ -192,7 +192,22 @@ body {
 
 /* Responsive */
 @media (max-width: 992px) {
+  body { overflow-y: auto; }
+  .app-layout { min-height: 100vh; height: auto; }
   .workspace { grid-template-columns: 1fr; }
   .preview-pane { display: none; }
   .step-sidebar { display: none; }
+}
+
+@media (max-width: 768px) {
+  .form-pane { padding: 20px 16px; }
+  .glass-card { padding: 18px 16px; }
+  .form-title { font-size: 18px; }
+  .resume-content { padding: 24px 20px; }
+}
+
+@media (max-width: 480px) {
+  .form-pane { padding: 16px 12px; }
+  .glass-card { padding: 16px 12px; }
+  .step-header { flex-wrap: wrap; gap: 10px; }
 }

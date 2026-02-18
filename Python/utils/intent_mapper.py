@@ -27,6 +27,18 @@ ALLOWED_KEYWORDS = [
     "cancel",
     "design",
     "document",
+    "feedback",
+    "rate",
+    "rating",
+    "review",
+    "experience",
+    "education",
+    "skill",
+    "skills",
+    "language",
+    "certification",
+    "about",
+    "terms",
 ]
 
 INTENTS = [
@@ -34,7 +46,10 @@ INTENTS = [
     ("support", "GO_TO_CONTACT"),
     ("pricing", "GO_TO_PRICING"),
     ("price", "GO_TO_PRICING"),
-    ("faq", "SCROLL_FAQ")
+    ("faq", "SCROLL_FAQ"),
+    ("feedback", "GO_TO_FEEDBACK"),
+    ("rate", "GO_TO_FEEDBACK"),
+    ("review", "GO_TO_FEEDBACK")
 ]
 
 

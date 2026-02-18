@@ -516,7 +516,7 @@ function loadCustomSections() {
     if (useWrapper && wrapperClass) {
       sectionEl.innerHTML = `
         <div class="section-title">
-          <span class="title-icon">📋</span>
+          <span class="title-icon"></span>
           <h3>${escapeHtml(section.name.toUpperCase())}</h3>
         </div>
         <div class="${wrapperClass}">

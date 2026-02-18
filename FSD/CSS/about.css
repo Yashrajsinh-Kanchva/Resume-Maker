@@ -68,3 +68,63 @@
 .team-links a:hover {
     text-shadow: 0 0 8px var(--neon-green);
 }
+
+/* RESPONSIVE */
+@media (max-width: 991px) {
+    .about-section {
+        padding: 60px 0;
+    }
+
+    .about-hero {
+        padding: 80px 0 60px;
+    }
+
+    .about-built {
+        padding: 40px 30px;
+    }
+
+    .about-tech {
+        padding: 50px 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .about-section {
+        padding: 40px 0;
+    }
+
+    .about-hero {
+        padding: 70px 0 50px;
+    }
+
+    .about-hero h1 {
+        font-size: 1.75rem;
+    }
+
+    .about-built {
+        padding: 30px 20px;
+        margin-top: 24px;
+    }
+
+    .about-tech {
+        padding: 40px 0;
+    }
+
+    .team-card {
+        padding: 24px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .about-hero h1 {
+        font-size: 1.5rem;
+    }
+
+    .about-built {
+        padding: 24px 16px;
+    }
+
+    .team-card {
+        padding: 20px 16px;
+    }
+}

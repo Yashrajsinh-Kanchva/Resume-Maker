@@ -58,6 +58,19 @@
     flex: 1;
 }
 
+/* Ensure header-left name and title are visible */
+.resume.academic-yellow .header-left h1,
+.header-left h1 {
+    color: #ffffff !important;
+}
+
+.resume.academic-yellow .header-left p,
+.header-left p {
+    color: #ffd83d !important;
+}
+
+/* Header name and title - higher specificity to override global rules */
+.resume.academic-yellow .top-header h1,
 .top-header h1 {
     margin: 0;
     font-size: 36px;
@@ -68,6 +81,7 @@
     text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
+.resume.academic-yellow .top-header p,
 .top-header p {
     margin: 0;
     font-size: 16px;

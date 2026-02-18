@@ -233,6 +233,13 @@ body {
 .footer {
     background: #000;
     border-top: 1px solid #1a1a1a;
+    color: #b0b0b0;
+}
+
+.footer .text-secondary,
+.footer p,
+.footer small {
+    color: #b0b0b0 !important;
 }
 
 .footer-link {
@@ -276,7 +283,6 @@ body {
         margin-top: 40px;
     }
 
-
     .green-blob {
         width: 300px;
         height: 300px;
@@ -288,5 +294,77 @@ body {
         border-radius: 12px;
         border: 1px solid #222;
         margin-top: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding-top: 60px;
+    }
+
+    .image-container {
+        width: 240px;
+        height: 380px;
+        margin-top: 24px;
+    }
+
+    .green-blob {
+        width: 260px;
+        height: 260px;
+    }
+
+    .primary-btn,
+    .outline-btn {
+        padding: 12px 24px;
+        font-size: 15px;
+    }
+
+    .navbar {
+        padding: 12px 0;
+    }
+
+    .logo {
+        font-size: 22px;
+    }
+
+    #backToTop {
+        bottom: 20px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-section {
+        padding-top: 50px;
+    }
+
+    .image-container {
+        width: 100%;
+        max-width: 260px;
+        height: 340px;
+    }
+
+    .green-blob {
+        width: 200px;
+        height: 200px;
+    }
+
+    .primary-btn,
+    .outline-btn {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+
+    .choose-btn {
+        padding: 14px 32px;
+        font-size: 16px;
+    }
+
+    .footer-links {
+        flex-direction: column;
+        gap: 12px;
     }
 }

@@ -1349,7 +1349,7 @@ function injectFinalData(data) {
         if (useWrapper && wrapperClass) {
           sectionEl.innerHTML = `
             <div class="section-title">
-              <span class="title-icon">📋</span>
+              <span class="title-icon"></span>
               <h3>${escapeHtml(section.name.toUpperCase())}</h3>
             </div>
             <div class="${wrapperClass}">
@@ -1634,18 +1634,22 @@ document.getElementById("atsCheckForm")?.addEventListener("submit", async functi
 });
 
 function displayATSResults(data) {
-  // Display score - ensure we're using the actual score from the response
+  // Display score - use resume_score (same as card/preview) instead of ats_score for consistency
   console.log("displayATSResults called with data:", data);
+  console.log("Raw resume_score value:", data.resume_score, "Type:", typeof data.resume_score);
   console.log("Raw ats_score value:", data.ats_score, "Type:", typeof data.ats_score);
   
-  // Parse score properly - handle string or number
+  // Use resume_score if available (matches card/preview), otherwise fall back to ats_score
   let scoreValue = 0;
-  if (data.ats_score !== undefined && data.ats_score !== null) {
+  if (data.resume_score !== undefined && data.resume_score !== null) {
+    scoreValue = typeof data.resume_score === 'string' ? parseFloat(data.resume_score) : data.resume_score;
+    scoreValue = Math.round(scoreValue);
+  } else if (data.ats_score !== undefined && data.ats_score !== null) {
     scoreValue = typeof data.ats_score === 'string' ? parseFloat(data.ats_score) : data.ats_score;
     scoreValue = Math.round(scoreValue);
   }
   
-  console.log("Calculated scoreValue:", scoreValue);
+  console.log("Calculated scoreValue (using resume_score):", scoreValue);
   
   const scoreValueEl = document.getElementById("atsScoreValue");
   if (scoreValueEl) {

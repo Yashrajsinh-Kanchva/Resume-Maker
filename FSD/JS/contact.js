@@ -165,9 +165,14 @@ async function sendMessage() {
             addMessage("No response from server.", "bot-msg");
         }
 
-        // 4. Handle SCROLL_FAQ intent
+        // 4. Handle intents
         if (data.intent === "SCROLL_FAQ") {
             document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" });
+        } else if (data.intent === "GO_TO_FEEDBACK") {
+            // Navigate to feedback page after a short delay
+            setTimeout(() => {
+                window.location.href = "feedback.html";
+            }, 1000);
         }
 
     } catch (err) {

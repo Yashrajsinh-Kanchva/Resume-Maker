@@ -163,4 +163,51 @@ body {
 .footer {
     background: #000;
     border-color: #1a1a1a !important;
+    color: #b0b0b0;
+}
+
+.footer .text-secondary,
+.footer small {
+    color: #b0b0b0 !important;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    body {
+        padding: 16px;
+    }
+
+    .navbar {
+        padding: 12px 0;
+    }
+
+    .logo {
+        font-size: 20px;
+    }
+
+    .terms-box {
+        max-height: 60vh;
+        padding: 20px;
+        margin: 0 10px;
+    }
+
+    .terms-box h5 {
+        font-size: 1rem;
+    }
+
+    .primary-btn {
+        padding: 10px 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .terms-box {
+        padding: 16px;
+        margin: 0 8px;
+    }
+
+    .outline-btn {
+        padding: 6px 16px;
+        font-size: 14px;
+    }
 }

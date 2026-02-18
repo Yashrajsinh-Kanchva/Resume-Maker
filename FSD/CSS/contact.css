@@ -273,8 +273,13 @@ select option {
 .footer-dark {
     background-color: #000;
     border-top: 1px solid #222;
-    color: #777;
+    color: var(--text-gray);
     padding: 40px 0;
+}
+
+.footer-dark p,
+.footer-dark .text-muted {
+    color: var(--text-gray) !important;
 }
 
 .footer-dark a {
@@ -285,4 +290,69 @@ select option {
 .footer-dark a:hover {
     color: var(--neon-green);
     text-shadow: 0 0 5px var(--neon-green);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .email-card {
+        padding: 24px 20px;
+        margin: 0 16px;
+    }
+
+    .chat-widget {
+        width: calc(100vw - 40px);
+        max-width: 360px;
+        height: 450px;
+    }
+
+    .robot-container {
+        bottom: 20px;
+        right: 16px;
+    }
+
+    .robot-head {
+        width: 60px;
+        height: 52px;
+    }
+
+    .faq-question {
+        padding: 12px 16px;
+        font-size: 15px;
+    }
+
+    .faq-item.active .faq-answer {
+        max-height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .email-card {
+        padding: 20px 16px;
+        margin: 0 12px;
+    }
+
+    .chat-widget {
+        width: calc(100vw - 24px);
+        height: 400px;
+        margin-bottom: 16px;
+    }
+
+    .chat-header {
+        padding: 12px 16px;
+    }
+
+    .chat-body {
+        padding: 16px;
+    }
+
+    .robot-head {
+        width: 56px;
+        height: 48px;
+    }
+
+    .primary-btn,
+    .outline-btn {
+        padding: 10px 18px;
+        font-size: 14px;
+    }
 }

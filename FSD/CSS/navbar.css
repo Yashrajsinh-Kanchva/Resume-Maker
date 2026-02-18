@@ -14,6 +14,7 @@
     border-bottom: 1px solid rgba(0, 255, 102, 0.1);
     padding: 15px 0;
     transition: 0.3s ease;
+    z-index: 10000; /* Above contact page robot/chat (z-index: 9999) so dropdown is clickable */
 }
 
 /* Brand Styling */
@@ -143,4 +144,40 @@
 }
 .navbar-toggler-icon {
     filter: invert(1); /* Ensures icon is white on dark background */
+}
+
+/* RESPONSIVE */
+@media (max-width: 991px) {
+    .custom-navbar {
+        padding: 12px 0;
+    }
+
+    .navbar-collapse {
+        background: rgba(10, 10, 10, 0.98);
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 255, 102, 0.1);
+        margin-top: 12px;
+    }
+
+    .nav-link {
+        padding: 10px 0;
+    }
+
+    .dropdown-menu {
+        margin-top: 8px;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+
+    .profile-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
 }
