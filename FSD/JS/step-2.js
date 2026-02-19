@@ -277,3 +277,4 @@ function fillList(id, text) {
 function goToStep3() {
   globalThis.location.href = "step-3.html";
 }
+globalThis.goToStep3 = goToStep3;

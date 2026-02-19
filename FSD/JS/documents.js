@@ -811,7 +811,7 @@ function autoPopulateAIForm() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function initAIModalHandlers() {
   const aiBtn = document.getElementById("aiCreateBtn");
   const aiModal = document.getElementById("aiResumeModal");
 
@@ -832,7 +832,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("aiContinueBtn")?.addEventListener("click", function () { proceedFromRoleToForm(); });
   document.getElementById("aiBackBtn")?.addEventListener("click", function () { showAIStep1(); });
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initAIModalHandlers);
+} else {
+  initAIModalHandlers();
+}
 
 function showAIStep1() {
   document.getElementById("aiStep1").style.display = "block";

@@ -619,3 +619,11 @@ function finishResume() {
       else alert(r.message || "Save failed");
     });
 }
+
+/* Expose for inline onclick (script is type="module") */
+globalThis.showAddCustomSection = showAddCustomSection;
+globalThis.closeCustomSectionModal = closeCustomSectionModal;
+globalThis.saveCustomSection = saveCustomSection;
+globalThis.editCustomSection = editCustomSection;
+globalThis.deleteCustomSection = deleteCustomSection;
+globalThis.finishResume = finishResume;

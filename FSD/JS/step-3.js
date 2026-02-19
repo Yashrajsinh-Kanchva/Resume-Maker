@@ -305,6 +305,7 @@ function goToStep4() {
   saveEducation();
   globalThis.location.href = "step-4.html";
 }
+globalThis.goToStep4 = goToStep4;
 function saveExperiences(list) {
   localStorage.setItem("experiences", JSON.stringify(list));
   loadExperience(); // 🔥 refresh preview

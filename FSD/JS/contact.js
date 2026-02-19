@@ -1,13 +1,4 @@
 /* ===============================
-   FAQ TOGGLE
-================================ */
-document.querySelectorAll(".faq-question").forEach(btn => {
-  btn.addEventListener("click", () => {
-    btn.parentElement.classList.toggle("active");
-  });
-});
-
-/* ===============================
    AUTO LOAD USER DATA
 ================================ */
 try {
@@ -26,6 +17,19 @@ try {
 /* ===============================
    CONTACT FORM SUBMIT
 ================================ */
+function showContactStatus(message, isSuccess) {
+  const el = document.getElementById("contactFormStatus");
+  if (!el) return;
+  el.textContent = message;
+  el.className = "contact-form-status mt-3 " + (isSuccess ? "contact-form-status--success" : "contact-form-status--error");
+  el.style.display = "block";
+  el.setAttribute("role", "alert");
+  setTimeout(() => {
+    el.style.display = "none";
+    el.removeAttribute("role");
+  }, 5000);
+}
+
 const contactForm = document.getElementById("contactForm");
 if (contactForm) {
     contactForm.addEventListener("submit", async e => {
@@ -35,10 +39,19 @@ if (contactForm) {
       const email = document.getElementById("email").value.trim();
       const subject = document.getElementById("subject").value;
       const message = document.getElementById("message").value.trim();
+      const statusEl = document.getElementById("contactFormStatus");
+      if (statusEl) statusEl.style.display = "none";
 
       if (!name || !email || !subject || !message) {
-        alert("Please fill all fields");
+        showContactStatus("Please fill in all fields.", false);
         return;
+      }
+
+      const submitBtn = contactForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn ? submitBtn.innerHTML : "";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
       }
 
       try {
@@ -57,17 +70,22 @@ if (contactForm) {
         const data = await res.json();
 
         if (!res.ok) {
-          alert(data.msg || "Failed to send message");
+          showContactStatus(data.msg || "Failed to send message. Please try again.", false);
           return;
         }
 
-        alert("Message sent successfully!");
+        showContactStatus("Message sent successfully! We'll get back to you soon.", true);
         document.getElementById("message").value = "";
         document.getElementById("subject").value = "";
 
       } catch (err) {
         console.error("Contact error:", err);
-        alert("Mail service unavailable.");
+        showContactStatus("Unable to send. Please check your connection and try again.", false);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
       }
     });
 }

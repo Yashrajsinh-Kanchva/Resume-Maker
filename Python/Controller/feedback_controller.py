@@ -36,10 +36,15 @@ def get_feedbacks():
     feedbacks = list(
         collection.find(
             {},
-            {"_id": 0, "name": 1, "feedback": 1}
+            {"_id": 0, "name": 1, "feedback": 1, "rating": 1, "created_at": 1}
         )
-        .sort("created_at", -1)   # 🔥 latest first
-        .limit(3)                 # 🔥 ONLY 3 REVIEWS
+        .sort("created_at", -1)   # latest first
+        .limit(3)                # first 3 only
     )
+    # Serialize created_at for JSON (optional, for display)
+    for f in feedbacks:
+        ct = f.get("created_at")
+        if ct is not None:
+            f["created_at"] = ct.isoformat() if hasattr(ct, "isoformat") else str(ct)
 
     return jsonify(feedbacks), 200
