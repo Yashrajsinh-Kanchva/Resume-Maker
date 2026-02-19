@@ -3,7 +3,6 @@ class PriorityQueue:
         self.heap = []
 
     def push(self, item):
-        # item = (priority, data)
         self.heap.append(item)
         self._heapify_up(len(self.heap) - 1)
 

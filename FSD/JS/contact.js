@@ -163,7 +163,7 @@ async function sendMessage() {
         } else if (data.intent === "GO_TO_FEEDBACK") {
             // Navigate to feedback page after a short delay
             setTimeout(() => {
-                window.location.href = "feedback.html";
+                globalThis.location.href = "feedback.html";
             }, 1000);
         }
 

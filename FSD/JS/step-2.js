@@ -275,5 +275,5 @@ function fillList(id, text) {
 
 /* ================== NAVIGATION ================== */
 function goToStep3() {
-  window.location.href = "step-3.html";
+  globalThis.location.href = "step-3.html";
 }

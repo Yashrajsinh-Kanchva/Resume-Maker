@@ -168,5 +168,5 @@ function bindLivePreview() {
 
 $("nextBtn").onclick = () => {
   save();
-  window.location.href = "step-2.html";
+  globalThis.location.href = "step-2.html";
 };

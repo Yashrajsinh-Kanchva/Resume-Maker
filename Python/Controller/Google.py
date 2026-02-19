@@ -33,7 +33,7 @@ def init_oauth(app):
         )
 
 # ✅ FINAL LOGIN URL
-@google_bp.route("/login")
+@google_bp.route("/login", methods=["GET"])
 def google_login():
     nonce = secrets.token_urlsafe(16)
     session["google_nonce"] = nonce
@@ -44,7 +44,7 @@ def google_login():
         nonce=nonce
     )
 
-@google_bp.route("/callback")
+@google_bp.route("/callback", methods=["GET"])
 def google_callback():
     nonce = session.pop("google_nonce", None)
 

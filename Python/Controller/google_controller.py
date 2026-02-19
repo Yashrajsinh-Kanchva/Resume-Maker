@@ -16,7 +16,7 @@ def init_oauth(app):
 
 
 # ================= GOOGLE LOGIN =================
-@google_bp.route("/google/login")
+@google_bp.route("/google/login", methods=["GET"])
 def google_login():
     # Explicitly construct redirect URI to match Google Cloud configuration
     # Use 127.0.0.1 instead of localhost to avoid mismatch
@@ -25,7 +25,7 @@ def google_login():
 
 
 # ================= GOOGLE CALLBACK =================
-@google_bp.route("/google/callback")
+@google_bp.route("/google/callback", methods=["GET"])
 def google_callback():
     oauth.google.authorize_access_token()
     user_info = oauth.google.get("userinfo").json()

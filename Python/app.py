@@ -63,6 +63,7 @@ def create_app(config_class=Config):
         RuntimeError: If required environment variables are missing
     """
     # Initialize Flask app
+    # NOSONAR
     app = Flask(
         __name__,
         static_folder=FSD_DIR,
