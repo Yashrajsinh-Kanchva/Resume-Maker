@@ -6,16 +6,16 @@ from services.skill_suggestion_service import suggest_skills
 class TestSkillSuggestionService:
     def test_suggest_python(self):
         result = suggest_skills("py")
-        assert "Python" in result or "python" in result
+        assert "python" in result
 
     def test_suggest_java(self):
         result = suggest_skills("jav")
-        assert "Java" in result
-        assert "Javascript" in result
+        assert "java" in result
+        assert "javascript" in result
 
     def test_suggest_case_insensitive(self):
         result = suggest_skills("PY")
-        assert "Python" in result
+        assert "python" in result
 
     def test_no_match(self):
         result = suggest_skills("xyz")
