@@ -10,6 +10,9 @@
   padding: 36px;
   border-bottom: 3px solid #ff7043;
 }
+.top-header h1 {
+  color: #333;
+}
 
 .card-elegant .top-header h1 {
   margin: 0;

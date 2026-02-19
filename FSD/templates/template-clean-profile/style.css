@@ -73,6 +73,7 @@
 .header h1 {
   font-size: 26px;
   margin: 0;
+  font-weight: 600;
 }
 
 .header h2 {
@@ -119,4 +120,16 @@ div:empty {
   font-weight: 600;
   padding: 0 4px;
   border-radius: 3px;
+}
+.header h1 {
+  color: #333;
+}
+
+.block h3,
+.section h3 {
+  color: #333;
+}
+
+.resume {
+  color: #444;
 }

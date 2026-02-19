@@ -11,6 +11,10 @@
   border-bottom: 3px solid #66bb6a;
 }
 
+.top-header h1 {
+  color: #333;
+}
+
 .soft-green-pro .top-header h1 {
   margin: 0;
   font-size: 32px;
