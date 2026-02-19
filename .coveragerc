@@ -1,0 +1,9 @@
+# So SonarCloud can match coverage paths (relative to repo root)
+[run]
+relative_files = True
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError

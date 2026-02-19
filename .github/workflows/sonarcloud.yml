@@ -29,7 +29,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          PYTHONPATH=Python pytest tests/ --cov=Python --cov-report=xml:coverage.xml -v
+          PYTHONPATH=Python pytest tests/ --cov=Python --cov-report=xml:coverage.xml --cov-config=.coveragerc -v
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92
