@@ -28,6 +28,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests with coverage
+        env:
+          MONGODB_URI: "mongodb://localhost:27017"
+          REDIS_URL: "redis://localhost:6379"
+          OPENAI_API_KEY: "sk-dummy"
         run: |
           PYTHONPATH=Python pytest tests/ --cov=Python --cov-report=xml:coverage.xml --cov-config=.coveragerc -v
 
@@ -37,7 +41,8 @@ jobs:
           args: >
             -Dsonar.organization=mihir021
             -Dsonar.projectKey=mihir021_resume-maker-
-            -Dsonar.sources=.
+            -Dsonar.sources=Python
+            -Dsonar.tests=tests
             -Dsonar.python.version=3.11
             -Dsonar.python.coverage.reportPaths=coverage.xml
         env:

@@ -1,4 +1,10 @@
 """Pytest fixtures."""
+import os
+# Allow tests to run without real DB/Redis/OpenAI (CI and local)
+os.environ.setdefault("MONGODB_URI", "mongodb://localhost:27017")
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
+os.environ.setdefault("OPENAI_API_KEY", "sk-dummy")
+
 import pytest
 
 
