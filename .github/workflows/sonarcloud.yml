@@ -27,13 +27,18 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Run tests with coverage
+        run: |
+          PYTHONPATH=Python pytest tests/ --cov=Python --cov-report=xml:coverage.xml -v
+
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
+        uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92
         with:
           args: >
             -Dsonar.organization=mihir021
             -Dsonar.projectKey=mihir021_resume-maker-
             -Dsonar.sources=.
             -Dsonar.python.version=3.11
+            -Dsonar.python.coverage.reportPaths=coverage.xml
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
