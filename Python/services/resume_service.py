@@ -20,7 +20,7 @@ class ResumeService:
 
         for r in resumes:
             result.append({
-                "email": CryptoUtils.decode(r.get("user_email", "")),
+                "email": CryptoUtils.safe_decode(r.get("user_email", "")),
                 "title": r.get("title", ""),
                 "created_at": r.get("created_at")
             })

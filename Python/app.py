@@ -24,7 +24,7 @@ from config.app_config import Config, FSD_DIR
 from config.redis_config import redis_client
 from Controller.user_controller import user_bp
 from Controller.chat_controller import chat_api
-from Controller.Google import google_bp, init_oauth
+from Controller.google_controller import google_bp, init_oauth
 from Controller.page_controller import page_bp
 from Controller.contact_email_controller import contact_api
 from Controller.forgot_password_controller import forgot_password_bp

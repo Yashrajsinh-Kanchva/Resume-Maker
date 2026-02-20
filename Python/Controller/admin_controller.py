@@ -18,7 +18,7 @@ from services.admin_service import AdminService
 from services.resume_service import ResumeService
 from utils.crypto_utils import CryptoUtils
 from utils.logger import LOG_DIR, setup_logger
-from utils.validators import is_valid_gmail
+from utils.validators import is_valid_email
 
 # ================= LOGGER =================
 admin_logger = setup_logger(name="ADMIN", log_file="admin.log")
@@ -136,8 +136,9 @@ def delete_user() -> Tuple[Response, int]:
 @admin_bp.route("/login", methods=["POST"])
 def admin_login() -> Tuple[Response, int]:
     """Authenticate admin by email and password. Returns 400 on bad input, 401 on failure."""
-    email = request.json.get("email")
-    password = request.json.get("password")
+    raw = request.json or {}
+    email = (raw.get("email") or "").strip() if raw.get("email") is not None else ""
+    password = raw.get("password")
 
     if not email or not password:
         return jsonify({
@@ -145,7 +146,7 @@ def admin_login() -> Tuple[Response, int]:
             "message": "Email and password are required",
         }), 400
 
-    if not is_valid_gmail(email):
+    if not is_valid_email(email):
         return jsonify({
             "success": False,
             "message": "Invalid email format",

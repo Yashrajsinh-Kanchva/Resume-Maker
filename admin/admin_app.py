@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 
+# Importing Modular Sections for Admin Panel
+
 from sections.dashboard import dashboard_page
 from sections.users import users_page
 from sections.resumes import resumes_page

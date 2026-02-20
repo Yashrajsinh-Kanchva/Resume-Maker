@@ -6,6 +6,16 @@ def is_valid_gmail(email: str) -> bool:
     return email.endswith("@gmail.com")
 
 
+def is_valid_email(email: str) -> bool:
+    """Accept any reasonable email format (e.g. for admin login)."""
+    if not email:
+        return False
+    s = str(email).strip()
+    if " " in s or "@" not in s:
+        return False
+    return "." in s.split("@")[-1]
+
+
 def validate_password(password: str):
     if not password:
         return False, "Password is required"

@@ -1,22 +1,60 @@
-# Python cache
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 *.pyo
 *.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
 
 # Virtual environments
-
-# Virtual environment
 .venv/
 venv/
+env/
+ENV/
 
-# Environment variables
+# Testing & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Environment & secrets
 .env
+.env.local
+.env.*.local
+*.pem
 
-# IDE
+# IDE & editors
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
 
 # Logs
 logs/
 Python/logs/
+*.log
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Misc
+*.bak
+*.tmp
+.cache/

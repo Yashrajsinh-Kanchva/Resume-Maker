@@ -1,39 +1,63 @@
+"""Google OAuth login and callback. Registers with UserService and session."""
 from flask import Blueprint, redirect, url_for, session
 from authlib.integrations.flask_client import OAuth
+from utils.crypto_utils import CryptoUtils
+import os
+import secrets
 
-google_bp = Blueprint("google_auth", __name__, url_prefix="/api/auth")
+from services.user_service import UserService
+
+google_bp = Blueprint(
+    "google",
+    __name__,
+    url_prefix="/api/auth/google"
+)
+
 oauth = OAuth()
+user_service = UserService()
+
 
 def init_oauth(app):
     oauth.init_app(app)
-    oauth.register(
-        name="google",
-        client_id=app.config["GOOGLE_CLIENT_ID"],
-        client_secret=app.config["GOOGLE_CLIENT_SECRET"],
-        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-        client_kwargs={"scope": "openid email profile"},
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    if client_id and client_secret:
+        oauth.register(
+            name="google",
+            client_id=client_id,
+            client_secret=client_secret,
+            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+            client_kwargs={"scope": "openid email profile"},
+        )
+
+
+@google_bp.route("/login", methods=["GET"])
+def google_login():
+    nonce = secrets.token_urlsafe(16)
+    session["google_nonce"] = nonce
+    redirect_uri = url_for("google.google_callback", _external=True)
+    return oauth.google.authorize_redirect(
+        redirect_uri=redirect_uri,
+        nonce=nonce
     )
 
 
-# ================= GOOGLE LOGIN =================
-@google_bp.route("/google/login", methods=["GET"])
-def google_login():
-    # Explicitly construct redirect URI to match Google Cloud configuration
-    # Use 127.0.0.1 instead of localhost to avoid mismatch
-    redirect_uri = "http://127.0.0.1:5000/api/auth/google/callback"
-    return oauth.google.authorize_redirect(redirect_uri)
-
-
-# ================= GOOGLE CALLBACK =================
-@google_bp.route("/google/callback", methods=["GET"])
+@google_bp.route("/callback", methods=["GET"])
 def google_callback():
-    oauth.google.authorize_access_token()
-    user_info = oauth.google.get("userinfo").json()
+    nonce = session.pop("google_nonce", None)
+    token = oauth.google.authorize_access_token()
+    profile = oauth.google.parse_id_token(token, nonce=nonce)
+    result = user_service.login_with_google(profile)
 
+    if not result["success"]:
+        session.pop("user", None)
+        return redirect(f"/login?error={result['message']}")
+
+    user = result["user"]
     session["user"] = {
-        "email": user_info["email"],
-        "name": user_info["name"],
-        "picture": user_info.get("picture")
+        "email": user["email"],
+        "name": user["name"],
+        "provider": "google",
+        "role": user.get("role", "user")
     }
-
-    return redirect("/dashboard")
+    return redirect("/login-success")
