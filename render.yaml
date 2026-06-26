@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: resume-maker
+    name: nextmove
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt && python -m spacy download en_core_web_sm
@@ -11,3 +11,25 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.0"
+      - key: MONGODB_URI
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: FLASK_ENV
+        value: production
