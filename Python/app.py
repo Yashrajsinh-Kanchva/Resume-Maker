@@ -39,6 +39,7 @@ from Controller.ai_resume_controller import ai_resume_bp
 from Controller.skill_controller import skill_bp
 from Controller.ats_controller import ats_bp
 from api.admin.chatbot import chatbot_bp
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load environment variables before importing Config
 load_dotenv()
@@ -69,7 +70,7 @@ def create_app(config_class=Config):
         static_folder=FSD_DIR,
         static_url_path=""
     )
-
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     # Load configuration
     app.config.from_object(config_class)
 
@@ -138,7 +139,8 @@ def _configure_cors(app):
     """
     allowed_origins = [
         "http://127.0.0.1:5000",
-        "http://localhost:5000"
+        "http://localhost:5000",
+        "https://next-move-dhla.onrender.com"
     ]
 
     # Add production origin if specified
