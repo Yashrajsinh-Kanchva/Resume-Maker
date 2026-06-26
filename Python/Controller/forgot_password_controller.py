@@ -14,7 +14,7 @@ def forgot_password():
     serializer = URLSafeTimedSerializer(current_app.secret_key)
     token = serializer.dumps(email, salt="password-reset")
 
-    reset_link = f"http://localhost:5000/reset-password/{token}"
+    reset_link = f"/reset-password/{token}"
 
     msg = Message(
         subject="Reset Your Resume Maker Password",
